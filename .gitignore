@@ -11,3 +11,8 @@
 
 #!.yarn/cache
 .pnp.*
+node_modules/
+.DS_Store
+.next
+.env*
+!.env.example

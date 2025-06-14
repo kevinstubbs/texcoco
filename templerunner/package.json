@@ -1,0 +1,10 @@
+{
+  "name": "TempleRun",
+  "packageManager": "yarn@4.6.0",
+  "private": true,
+  "dependencies": {
+    "@aztec/accounts": "0.87.4",
+    "@aztec/aztec.js": "0.87.4",
+    "@aztec/noir-contracts.js": "0.87.4"
+  }
+}
