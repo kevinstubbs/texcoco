@@ -10,8 +10,10 @@ import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-rust';
 import 'prismjs/themes/prism.css';
 import { compileContract } from '../actions/compile';
+import { Interact } from './interact';
+import { UIConfig } from './interact-interfaces';
 
-const testConfig = {
+const testConfig: UIConfig = {
     "personas": [
         {
             "id": "admin",
@@ -140,6 +142,7 @@ const testConfig = {
                                 },
                                 {
                                     "status": "success",
+                                    "label": "Success",
                                     "nextScreen": "vote_confirmation"
                                 }
                             ]
@@ -413,6 +416,7 @@ export default function Workbench() {
                 <div className="card bg-base-100 shadow-xl mt-4">
                     <div className="card-body">
                         <h3 className="card-title">Interact</h3>
+                        <Interact config={testConfig} />
                     </div>
                 </div>
             </div>
