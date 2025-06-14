@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { generateContract } from '../actions/claude';
+import { generateContract, generateUIConfig } from '../actions/claude';
 import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
@@ -16,255 +16,8 @@ import { FaGear } from "react-icons/fa6";
 import { useAtom } from 'jotai';
 import { walletsAtom, selectedWalletAtom } from '../atoms';
 import { Wallet } from '@aztec/aztec.js';
-import { useChat } from 'ai/react';
-import { FaPaperPlane } from 'react-icons/fa';
 import { AIChatCard } from '../components/AIChatCard';
-
-const testConfig: UIConfig = {
-    "personas": [
-        {
-            "id": "admin",
-            "displayName": "Admin / Deployer",
-            "permissions": {
-                "read": ["get_yes_count", "get_no_count"],
-                "write": ["constructor"]
-            },
-            "screens": [
-                {
-                    "id": "connect_wallet",
-                    "type": "connect_wallet",
-                    "props": {
-                        "prompt": "Connect your deployer key"
-                    }
-                },
-                {
-                    "id": "deploy_initialize",
-                    "type": "panel",
-                    "title": "Deploy & Initialize",
-                    "components": [
-                        {
-                            "type": "button",
-                            "id": "deploy_contract",
-                            "label": "Deploy OneTimeVote",
-                            "action": {
-                                "type": "deployContract"
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "run_constructor",
-                            "label": "Run constructor()",
-                            "action": {
-                                "type": "invokeFunction",
-                                "function": "constructor"
-                            },
-                            "requiresConfirmation": true,
-                            "confirmationMessage": "This will zero both tallies."
-                        }
-                    ]
-                },
-                {
-                    "id": "storage_snapshot",
-                    "type": "panel",
-                    "title": "Storage Snapshot",
-                    "components": [
-                        {
-                            "type": "numeric_display",
-                            "id": "yes_count",
-                            "label": "Yes Count",
-                            "dataSource": {
-                                "function": "get_yes_count"
-                            },
-                            "autoRefreshBoundTo": "auto_refresh_toggle"
-                        },
-                        {
-                            "type": "numeric_display",
-                            "id": "no_count",
-                            "label": "No Count",
-                            "dataSource": {
-                                "function": "get_no_count"
-                            },
-                            "autoRefreshBoundTo": "auto_refresh_toggle"
-                        },
-                        {
-                            "type": "toggle",
-                            "id": "auto_refresh_toggle",
-                            "label": "Auto-refresh",
-                            "default": true
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "voter",
-            "displayName": "Voter",
-            "permissions": {
-                "read": ["get_yes_count", "get_no_count"],
-                "write": ["cast_vote"]
-            },
-            "screens": [
-                {
-                    "id": "connect_wallet",
-                    "type": "connect_wallet",
-                    "props": {
-                        "prompt": "Connect your voting key"
-                    }
-                },
-                {
-                    "id": "vote_form",
-                    "type": "form",
-                    "title": "Cast Your Vote",
-                    "components": [
-                        {
-                            "type": "choice_selector",
-                            "id": "vote_choice",
-                            "label": "Select your choice",
-                            "options": [
-                                { "label": "Yes", "value": 1 },
-                                { "label": "No", "value": 0 }
-                            ],
-                            "singleSelect": true
-                        },
-                        {
-                            "type": "button",
-                            "id": "submit_vote",
-                            "label": "Cast Vote",
-                            "action": {
-                                "type": "invokeFunction",
-                                "function": "cast_vote",
-                                "args": {
-                                    "choice": "vote_choice.value"
-                                }
-                            },
-                            "disabledBoundTo": "hasVoted",
-                            "statusFlows": [
-                                {
-                                    "status": "initiating",
-                                    "label": "Generating proof…"
-                                },
-                                {
-                                    "status": "submitting",
-                                    "label": "Submitting…"
-                                },
-                                {
-                                    "status": "success",
-                                    "label": "Success",
-                                    "nextScreen": "vote_confirmation"
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "id": "vote_confirmation",
-                    "type": "screen",
-                    "title": "Vote Confirmation",
-                    "components": [
-                        {
-                            "type": "text",
-                            "id": "confirmation_message",
-                            "content": "Your vote has been recorded on-chain. You cannot vote again."
-                        },
-                        {
-                            "type": "tx_details",
-                            "id": "cast_vote_tx",
-                            "dataSource": {
-                                "function": "cast_vote",
-                                "fetch": "lastTransaction"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "id": "current_tally",
-                    "type": "panel",
-                    "title": "Current Tally",
-                    "components": [
-                        {
-                            "type": "numeric_display",
-                            "id": "yes_count",
-                            "label": "Yes Count",
-                            "dataSource": {
-                                "function": "get_yes_count"
-                            }
-                        },
-                        {
-                            "type": "numeric_display",
-                            "id": "no_count",
-                            "label": "No Count",
-                            "dataSource": {
-                                "function": "get_no_count"
-                            }
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "observer",
-            "displayName": "Observer",
-            "permissions": {
-                "read": ["get_yes_count", "get_no_count"],
-                "write": []
-            },
-            "screens": [
-                {
-                    "id": "results_dashboard",
-                    "type": "dashboard",
-                    "title": "Results Overview",
-                    "components": [
-                        {
-                            "type": "numeric_display",
-                            "id": "yes_count",
-                            "label": "Yes",
-                            "dataSource": {
-                                "function": "get_yes_count"
-                            }
-                        },
-                        {
-                            "type": "numeric_display",
-                            "id": "no_count",
-                            "label": "No",
-                            "dataSource": {
-                                "function": "get_no_count"
-                            }
-                        },
-                        {
-                            "type": "bar_chart",
-                            "id": "yes_no_distribution",
-                            "dataSource": {
-                                "type": "functionResults",
-                                "functions": ["get_yes_count", "get_no_count"]
-                            }
-                        }
-                    ]
-                },
-                {
-                    "id": "live_updates",
-                    "type": "toggle",
-                    "label": "Live updates",
-                    "default": false
-                },
-                {
-                    "id": "explorer_links",
-                    "type": "link_list",
-                    "title": "Explorer Links",
-                    "items": [
-                        {
-                            "label": "View contract on Aztec explorer",
-                            "urlTemplate": "https://explorer.aztec.network/contracts/{{contractAddress}}"
-                        },
-                        {
-                            "label": "See all transaction history",
-                            "urlTemplate": "https://explorer.aztec.network/contracts/{{contractAddress}}/transactions"
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const compilerVersions = [
     { version: '0.82.3', label: '0.82.3' }
@@ -290,6 +43,8 @@ export default function Workbench() {
     const [wallets] = useAtom(walletsAtom);
     const [selectedWallet] = useAtom(selectedWalletAtom);
     const [compilationResult, setCompilationResult] = useState<CompilationResult | null>(null);
+    const [uiConfig, setUIConfig] = useState<UIConfig | null>(null);
+    const [generatingUIConfig, setGeneratingUIConfig] = useState(false);
 
     useEffect(() => {
         async function generate() {
@@ -320,10 +75,12 @@ export default function Workbench() {
         if (!contract) return;
         setCompiling(true);
         setCompilationResult(null);
+        setUIConfig(null);
         const startTime = Date.now();
+        let result;
 
         try {
-            const result = await compileContract(contract);
+            result = await compileContract(contract);
             setCompilationResult({
                 ...result,
                 timestamp: Date.now(),
@@ -336,17 +93,46 @@ export default function Workbench() {
                 timestamp: Date.now(),
                 duration: Date.now() - startTime
             });
+            return;
         } finally {
             setCompiling(false);
+        }
+
+        // Generate UI config if compilation was successful
+        if (result.success) {
+            setGeneratingUIConfig(true);
+            try {
+                const uiResult = await generateUIConfig(contract);
+                if (uiResult.success) {
+                    setUIConfig(uiResult.config);
+                } else {
+                    console.error('Failed to generate UI config:', uiResult.error);
+                }
+            } catch (err) {
+                console.error('Error generating UI config:', err);
+            } finally {
+                setGeneratingUIConfig(false);
+            }
         }
     };
 
     return (
-        <div className="p-4 flex-1 bg-base-200 flex flex-row">
+        <div className="p-4 flex-1 bg-base-200 flex flex-row max-w-full">
             <div className="w-1/3 p-4">
                 <h1 className="text-5xl font-bold mb-6">Workbench</h1>
                 <CompileCard {...{ contract, compiling, selectedCompiler, compilationResult, handleCompile }} />
-                {compilationResult?.success ? <InteractionCard wallets={wallets} selectedWallet={selectedWallet} /> : null}
+                {compilationResult?.success && !generatingUIConfig && uiConfig ? (
+                    <InteractionCard wallets={wallets} selectedWallet={selectedWallet} config={uiConfig} />
+                ) : generatingUIConfig ? (
+                    <div className="card bg-base-100 shadow-xl mt-4">
+                        <div className="card-body">
+                            <div className="flex items-center gap-2">
+                                <span className="loading loading-spinner loading-sm"></span>
+                                <span>Generating UI...</span>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
             </div>
             <div className="h-full flex flex-col items-center">
                 <div className="text-center w-full max-w-4xl">
@@ -516,7 +302,7 @@ const CompileCard = ({ contract, compiling, selectedCompiler, compilationResult,
     </div>
 }
 
-const InteractionCard = ({ wallets, selectedWallet }: { wallets: Wallet[], selectedWallet: Wallet }) => {
+const InteractionCard = ({ wallets, selectedWallet, config }: { wallets: Wallet[], selectedWallet: Wallet, config: UIConfig }) => {
     return <div className="card bg-base-100 shadow-xl mt-4">
         <div className="card-body">
             <div className="flex justify-between items-center mb-4">
@@ -527,7 +313,9 @@ const InteractionCard = ({ wallets, selectedWallet }: { wallets: Wallet[], selec
                     </div>
                 )}
             </div>
-            <Interact config={testConfig} selectedWallet={selectedWallet} />
+            <ErrorBoundary>
+                <Interact config={config} selectedWallet={selectedWallet} />
+            </ErrorBoundary>
         </div>
     </div>
 }

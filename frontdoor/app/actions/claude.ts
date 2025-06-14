@@ -1,14 +1,16 @@
 'use server'
 
 import { Anthropic } from '@anthropic-ai/sdk';
+import fs from 'fs-extra';
+import { join } from 'path';
 
 const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
+    apiKey: process.env.ANTHROPIC_API_KEY!
 });
 
 export async function generateContract(prompt: string) {
     // This is just for testing other things/preserving tokens.
-    if (prompt?.length && prompt.length > 0) {
+    if (prompt?.length && prompt.includes("DEBUG")) {
         return {
             success: true,
             code:
@@ -92,28 +94,146 @@ pub contract OneTimeVote {
     }
 
     try {
+        // Read the prompt from the file
+        const promptPath = join(process.cwd(), 'app', 'actions', 'prompt.txt');
+        const systemPrompt = await fs.readFile(promptPath, 'utf-8');
+
         const message = await anthropic.messages.create({
             model: "claude-sonnet-4-20250514",
             max_tokens: 4000,
             messages: [
                 {
                     role: "user",
-                    content: `You are an expert blockchain contract writer. Create an Aztec Smart contract in the Noir language given the user's prompt. Your output should be only valid aztec contract code and nothing else.
+                    content: `${systemPrompt}
 
 User's prompt: ${prompt}`
                 }
             ],
         });
 
-        return {
-            success: true,
-            code: message.content[0].type === 'text' ? message.content[0].text : JSON.stringify(message.content[0])
-        };
+        const content = message.content[0].text;
+
+        // Extract the contract code from the response
+        const codeMatch = content.match(/```(?:noir)?\n([\s\S]*?)\n```/);
+        if (!codeMatch) {
+            throw new Error('Failed to extract contract code from response');
+        }
+
+        return { success: true, code: codeMatch[1] };
     } catch (error) {
         console.error('Error generating contract:', error);
-        return {
-            success: false,
-            error: 'Failed to generate contract'
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to generate contract' };
+    }
+}
+
+export async function generateUIConfig(contractCode: string) {
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': process.env.ANTHROPIC_API_KEY!,
+                'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 4000,
+                messages: [
+                    {
+                        role: 'user',
+                        content: `Based on this aztec smart contract, identify the different user personas (one could be a governor, another could be a user, etc.) and generate an outline of the UI for each persona based on how they could interact with the contract, what information they could read, etc.
+
+For example, a token contract would probably let users withdraw and read their balance, while the dao controller would be able to call emergency_shutdown.
+
+Only include UI for on-chain interactions with the contract (read and write)
+
+Here's the contract code:
+\`\`\`noir
+${contractCode}
+\`\`\`
+
+Please generate a UI config that follows this TypeScript interface:
+
+\`\`\`typescript
+interface UIConfig {
+    personas: Array<{
+        id: string;
+        displayName: string;
+        permissions: {
+            read: string[];
+            write: string[];
         };
+        screens: Array<{
+            id: string;
+            type: 'panel' | 'form' | 'screen' | 'dashboard';
+            title?: string;
+            props?: {
+                prompt?: string;
+            };
+            components?: Array<{
+                type: 'button' | 'numeric_display' | 'toggle' | 'choice_selector' | 'text' | 'tx_details' | 'bar_chart' | 'link_list';
+                id: string;
+                label?: string;
+                content?: string;
+                action?: {
+                    type: 'deployContract' | 'invokeFunction';
+                    function?: string;
+                    args?: Record<string, string>;
+                };
+                dataSource?: {
+                    type?: 'functionResults';
+                    function?: string;
+                    functions?: string[];
+                    fetch?: 'lastTransaction';
+                };
+                options?: Array<{
+                    label: string;
+                    value: number;
+                }>;
+                items?: Array<{
+                    label: string;
+                    urlTemplate: string;
+                }>;
+                singleSelect?: boolean;
+                requiresConfirmation?: boolean;
+                confirmationMessage?: string;
+                disabledBoundTo?: string;
+                statusFlows?: Array<{
+                    status: string;
+                    label: string;
+                    nextScreen?: string;
+                }>;
+                default?: boolean;
+                autoRefreshBoundTo?: string;
+            }>;
+        }>;
+    }>;
+}
+\`\`\`
+
+The config should be valid TypeScript that can be parsed by JSON.parse().`
+                    }
+                ],
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to generate UI config');
+        }
+
+        const data = await response.json();
+        const content = data.content[0].text;
+
+        // Extract the JSON config from the response
+        const configMatch = content.match(/```(?:typescript|json)?\n([\s\S]*?)\n```/);
+        if (!configMatch) {
+            throw new Error('Failed to extract UI config from response');
+        }
+
+        const config = JSON.parse(configMatch[1]);
+        return { success: true, config };
+    } catch (error) {
+        console.error('Error generating UI config:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to generate UI config' };
     }
 } 

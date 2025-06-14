@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "./components/navbar";
+import ExtensionErrorFilter from "./components/extension-error-filter";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="en" data-theme="light">
       <body className={inter.className}>
         <div className="min-h-screen bg-base-100 flex flex-col">
+          <ExtensionErrorFilter />
           <Navbar />
           <div className="flex-1 flex">{children}</div>
         </div>

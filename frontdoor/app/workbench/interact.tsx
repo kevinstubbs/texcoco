@@ -119,20 +119,20 @@ export function Interact({ config, selectedWallet }: InteractProps) {
             <div className="space-y-4">
                 {selectedPersona.screens.map(screen => {
                     switch (screen.type) {
-                        case 'connect_wallet':
-                            return (
-                                <div key={screen.id} className="card bg-base-200">
-                                    <div className="card-body">
-                                        <h3 className="card-title">{screen.props.prompt}</h3>
-                                        <button
-                                            className="btn btn-primary"
-                                            disabled={!wallet}
-                                        >
-                                            {wallet ? 'Wallet Connected' : 'No Wallet Selected'}
-                                        </button>
-                                    </div>
-                                </div>
-                            );
+                        // case 'connect_wallet':
+                        //     return (
+                        //         <div key={screen.id} className="card bg-base-200">
+                        //             <div className="card-body">
+                        //                 <h3 className="card-title">{screen.props.prompt}</h3>
+                        //                 <button
+                        //                     className="btn btn-primary"
+                        //                     disabled={!wallet}
+                        //                 >
+                        //                     {wallet ? 'Wallet Connected' : 'No Wallet Selected'}
+                        //                 </button>
+                        //             </div>
+                        //         </div>
+                        //     );
 
                         case 'panel':
                             return (

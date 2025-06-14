@@ -18,22 +18,12 @@ export interface Permissions {
 
 // Screen union
 export type Screen =
-    | ConnectWalletScreen
     | PanelScreen
     | FormScreen
     | GenericScreen
     | DashboardScreen
     | ToggleScreen
     | LinkListScreen;
-
-// Screen types
-export interface ConnectWalletScreen {
-    id: string;
-    type: 'connect_wallet';
-    props: {
-        prompt: string;
-    };
-}
 
 export interface PanelScreen {
     id: string;
