@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { generateContract } from '../actions/claude';
 import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs/components/prism-core';
@@ -16,6 +16,9 @@ import { FaGear } from "react-icons/fa6";
 import { useAtom } from 'jotai';
 import { walletsAtom, selectedWalletAtom } from '../atoms';
 import { Wallet } from '@aztec/aztec.js';
+import { useChat } from 'ai/react';
+import { FaPaperPlane } from 'react-icons/fa';
+import { AIChatCard } from '../components/AIChatCard';
 
 const testConfig: UIConfig = {
     "personas": [
@@ -340,9 +343,13 @@ export default function Workbench() {
 
     return (
         <div className="p-4 flex-1 bg-base-200 flex flex-row">
+            <div className="w-1/3 p-4">
+                <h1 className="text-5xl font-bold mb-6">Workbench</h1>
+                <CompileCard {...{ contract, compiling, selectedCompiler, compilationResult, handleCompile }} />
+                {compilationResult?.success ? <InteractionCard wallets={wallets} selectedWallet={selectedWallet} /> : null}
+            </div>
             <div className="h-full flex flex-col items-center">
                 <div className="text-center w-full max-w-4xl">
-                    <h1 className="text-5xl font-bold mb-6">Workbench</h1>
 
                     <div className="card bg-base-100 shadow-xl mb-8">
                         <div className="card-body">
@@ -391,22 +398,13 @@ export default function Workbench() {
                 </div>
             </div>
             <div className="w-1/3 p-4">
-                <CompileCard {...{ contract, compiling, selectedCompiler, compilationResult, handleCompile }} />
-                {compilationResult?.success ? <InteractionCard wallets={wallets} selectedWallet={selectedWallet} /> : null}
-            </div>
-            <div className="w-1/3 p-4">
-                AI Chat
+                <AIChatCard
+                    contractCode={contract || undefined}
+                    seedPrompt={prompt || undefined}
+                />
             </div>
         </div >
     );
-}
-
-const AIChatCard = () => {
-    return <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-            <h3 className="card-title">AI Chat</h3>
-        </div>
-    </div>
 }
 
 const CompileCard = ({ contract, compiling, selectedCompiler, compilationResult, handleCompile }: { contract: string | null | undefined, compiling: boolean, selectedCompiler: string, compilationResult: CompilationResult | null, handleCompile: () => void }) => {
