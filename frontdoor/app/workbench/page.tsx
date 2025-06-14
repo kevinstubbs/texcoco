@@ -11,6 +11,252 @@ import 'prismjs/components/prism-rust';
 import 'prismjs/themes/prism.css';
 import { compileContract } from '../actions/compile';
 
+const testConfig = {
+    "personas": [
+        {
+            "id": "admin",
+            "displayName": "Admin / Deployer",
+            "permissions": {
+                "read": ["get_yes_count", "get_no_count"],
+                "write": ["constructor"]
+            },
+            "screens": [
+                {
+                    "id": "connect_wallet",
+                    "type": "connect_wallet",
+                    "props": {
+                        "prompt": "Connect your deployer key"
+                    }
+                },
+                {
+                    "id": "deploy_initialize",
+                    "type": "panel",
+                    "title": "Deploy & Initialize",
+                    "components": [
+                        {
+                            "type": "button",
+                            "id": "deploy_contract",
+                            "label": "Deploy OneTimeVote",
+                            "action": {
+                                "type": "deployContract"
+                            }
+                        },
+                        {
+                            "type": "button",
+                            "id": "run_constructor",
+                            "label": "Run constructor()",
+                            "action": {
+                                "type": "invokeFunction",
+                                "function": "constructor"
+                            },
+                            "requiresConfirmation": true,
+                            "confirmationMessage": "This will zero both tallies."
+                        }
+                    ]
+                },
+                {
+                    "id": "storage_snapshot",
+                    "type": "panel",
+                    "title": "Storage Snapshot",
+                    "components": [
+                        {
+                            "type": "numeric_display",
+                            "id": "yes_count",
+                            "label": "Yes Count",
+                            "dataSource": {
+                                "function": "get_yes_count"
+                            },
+                            "autoRefreshBoundTo": "auto_refresh_toggle"
+                        },
+                        {
+                            "type": "numeric_display",
+                            "id": "no_count",
+                            "label": "No Count",
+                            "dataSource": {
+                                "function": "get_no_count"
+                            },
+                            "autoRefreshBoundTo": "auto_refresh_toggle"
+                        },
+                        {
+                            "type": "toggle",
+                            "id": "auto_refresh_toggle",
+                            "label": "Auto-refresh",
+                            "default": true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "voter",
+            "displayName": "Voter",
+            "permissions": {
+                "read": ["get_yes_count", "get_no_count"],
+                "write": ["cast_vote"]
+            },
+            "screens": [
+                {
+                    "id": "connect_wallet",
+                    "type": "connect_wallet",
+                    "props": {
+                        "prompt": "Connect your voting key"
+                    }
+                },
+                {
+                    "id": "vote_form",
+                    "type": "form",
+                    "title": "Cast Your Vote",
+                    "components": [
+                        {
+                            "type": "choice_selector",
+                            "id": "vote_choice",
+                            "label": "Select your choice",
+                            "options": [
+                                { "label": "Yes", "value": 1 },
+                                { "label": "No", "value": 0 }
+                            ],
+                            "singleSelect": true
+                        },
+                        {
+                            "type": "button",
+                            "id": "submit_vote",
+                            "label": "Cast Vote",
+                            "action": {
+                                "type": "invokeFunction",
+                                "function": "cast_vote",
+                                "args": {
+                                    "choice": "vote_choice.value"
+                                }
+                            },
+                            "disabledBoundTo": "hasVoted",
+                            "statusFlows": [
+                                {
+                                    "status": "initiating",
+                                    "label": "Generating proof…"
+                                },
+                                {
+                                    "status": "submitting",
+                                    "label": "Submitting…"
+                                },
+                                {
+                                    "status": "success",
+                                    "nextScreen": "vote_confirmation"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "vote_confirmation",
+                    "type": "screen",
+                    "title": "Vote Confirmation",
+                    "components": [
+                        {
+                            "type": "text",
+                            "id": "confirmation_message",
+                            "content": "Your vote has been recorded on-chain. You cannot vote again."
+                        },
+                        {
+                            "type": "tx_details",
+                            "id": "cast_vote_tx",
+                            "dataSource": {
+                                "function": "cast_vote",
+                                "fetch": "lastTransaction"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "current_tally",
+                    "type": "panel",
+                    "title": "Current Tally",
+                    "components": [
+                        {
+                            "type": "numeric_display",
+                            "id": "yes_count",
+                            "label": "Yes Count",
+                            "dataSource": {
+                                "function": "get_yes_count"
+                            }
+                        },
+                        {
+                            "type": "numeric_display",
+                            "id": "no_count",
+                            "label": "No Count",
+                            "dataSource": {
+                                "function": "get_no_count"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "observer",
+            "displayName": "Observer",
+            "permissions": {
+                "read": ["get_yes_count", "get_no_count"],
+                "write": []
+            },
+            "screens": [
+                {
+                    "id": "results_dashboard",
+                    "type": "dashboard",
+                    "title": "Results Overview",
+                    "components": [
+                        {
+                            "type": "numeric_display",
+                            "id": "yes_count",
+                            "label": "Yes",
+                            "dataSource": {
+                                "function": "get_yes_count"
+                            }
+                        },
+                        {
+                            "type": "numeric_display",
+                            "id": "no_count",
+                            "label": "No",
+                            "dataSource": {
+                                "function": "get_no_count"
+                            }
+                        },
+                        {
+                            "type": "bar_chart",
+                            "id": "yes_no_distribution",
+                            "dataSource": {
+                                "type": "functionResults",
+                                "functions": ["get_yes_count", "get_no_count"]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "live_updates",
+                    "type": "toggle",
+                    "label": "Live updates",
+                    "default": false
+                },
+                {
+                    "id": "explorer_links",
+                    "type": "link_list",
+                    "title": "Explorer Links",
+                    "items": [
+                        {
+                            "label": "View contract on Aztec explorer",
+                            "urlTemplate": "https://explorer.aztec.network/contracts/{{contractAddress}}"
+                        },
+                        {
+                            "label": "See all transaction history",
+                            "urlTemplate": "https://explorer.aztec.network/contracts/{{contractAddress}}/transactions"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+
+
 export default function Workbench() {
     const searchParams = useSearchParams();
     const prompt = searchParams.get('prompt');
@@ -125,9 +371,9 @@ export default function Workbench() {
                     <div className="card-body">
                         <h3 className="card-title">Compile</h3>
 
-                        <button 
-                            className='btn btn-primary' 
-                            disabled={!contract?.length || compiling} 
+                        <button
+                            className='btn btn-primary'
+                            disabled={!contract?.length || compiling}
                             onClick={handleCompile}
                         >
                             {compiling ? (
