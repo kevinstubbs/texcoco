@@ -27,13 +27,13 @@ export const Navbar = () => {
             </div>
             <div className="flex flex-row flex-none gap-2">
                 {nodeInfo?.status === 'connected' ?
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 pr-2">
                         <div className="text-sm font-mono">
                             Chain ID: {nodeInfo.l1ChainId}
                         </div>
                     </div> : null}
 
-                <div className={classNames("flex flex-row gap-2 items-center ring-2 rounded-lg px-2 w-32", {
+                <div className={classNames("flex flex-row gap-2 items-center ring-2 rounded-lg px-2 w-40 items-center justify-center", {
                     "ring-red-400": nodeInfo?.status === 'disconnected',
                     "ring-green-400": nodeInfo?.status === 'connected',
                     "ring-grey-200": nodeInfo?.status === 'loading',

@@ -12,12 +12,41 @@ import 'prismjs/themes/prism-dark.css';
 import { compileContract } from '../actions/compile';
 import { Interact } from './interact';
 import { UIConfig } from './interact-interfaces';
-import { FaGear } from "react-icons/fa6";
 import { useAtom } from 'jotai';
 import { walletsAtom, selectedWalletAtom } from '../atoms';
 import { Wallet } from '@aztec/aztec.js';
 import { AIChatCard } from '../components/AIChatCard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { FaCopy } from 'react-icons/fa';
+import toast from 'react-hot-toast';
+
+const ArtifactsCard = ({ artifacts }: { artifacts: Record<string, string> }) => {
+    return (
+        <div className="card bg-base-100 shadow-xl mt-4">
+            <div className="card-body">
+                <h3 className="card-title">Generated Artifacts</h3>
+                <div className="overflow-x-auto">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Content</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.entries(artifacts).map(([filename, content]) => (
+                                <tr key={filename}>
+                                    <td className="font-mono">{filename}</td>
+                                    <td className="font-mono whitespace-pre-wrap">{content}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const compilerVersions = [
     { version: '0.82.3', label: '0.82.3' }
@@ -30,6 +59,7 @@ interface CompilationResult {
     error?: string;
     timestamp?: number;
     duration?: number;
+    artifacts?: Record<string, string>;
 }
 
 export default function Workbench() {
@@ -45,6 +75,7 @@ export default function Workbench() {
     const [compilationResult, setCompilationResult] = useState<CompilationResult | null>(null);
     const [uiConfig, setUIConfig] = useState<UIConfig | null>(null);
     const [generatingUIConfig, setGeneratingUIConfig] = useState(false);
+    const [showArtifacts, setShowArtifacts] = useState(false);
 
     useEffect(() => {
         async function generate() {
@@ -122,7 +153,31 @@ export default function Workbench() {
                 <h1 className="text-5xl font-bold mb-6">Workbench</h1>
                 <CompileCard {...{ contract, compiling, selectedCompiler, compilationResult, handleCompile }} />
                 {compilationResult?.success && !generatingUIConfig && uiConfig ? (
-                    <InteractionCard wallets={wallets} selectedWallet={selectedWallet} config={uiConfig} />
+                    <div className="card bg-base-100 shadow-xl mt-4">
+                        <div className="tabs tabs-boxed">
+                            <button 
+                                className={`tab ${!showArtifacts ? 'tab-active' : ''}`}
+                                onClick={() => setShowArtifacts(false)}
+                            >
+                                Interact
+                            </button>
+                            <button 
+                                className={`tab ${showArtifacts ? 'tab-active' : ''}`}
+                                onClick={() => setShowArtifacts(true)}
+                            >
+                                Artifacts
+                            </button>
+                        </div>
+                        <div className="card-body">
+                            {!showArtifacts ? (
+                                <ErrorBoundary>
+                                    <Interact config={uiConfig} selectedWallet={selectedWallet} />
+                                </ErrorBoundary>
+                            ) : compilationResult.artifacts ? (
+                                <ArtifactsCard artifacts={compilationResult.artifacts} />
+                            ) : null}
+                        </div>
+                    </div>
                 ) : generatingUIConfig ? (
                     <div className="card bg-base-100 shadow-xl mt-4">
                         <div className="card-body">
@@ -155,7 +210,18 @@ export default function Workbench() {
                     ) : contract ? (
                         <div className="card bg-base-100 shadow-xl">
                             <div className="card-body">
-                                <h2 className="card-title">Generated Contract</h2>
+                                <div className="flex justify-between items-center">
+                                    <h2 className="card-title">Generated Contract</h2>
+                                    <button
+                                        className="btn btn-ghost btn-sm"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(contract);
+                                            toast.success('Contract copied to clipboard!');
+                                        }}
+                                    >
+                                        <FaCopy className="h-4 w-4" />
+                                    </button>
+                                </div>
                                 <div className="bg-base-300 rounded-lg overflow-hidden">
                                     <Editor
                                         value={contract}

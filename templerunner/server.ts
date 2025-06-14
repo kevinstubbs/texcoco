@@ -52,11 +52,31 @@ app.post('/compile', async (req, res) => {
             { cwd: tmpDir }
         );
 
+        // Run codegen
+        await execAsync(
+            'node --no-warnings /usr/src/yarn-project/aztec/dest/bin/index.js codegen target --outdir src/artifacts',
+            { cwd: tmpDir }
+        );
+
+        // Read all generated artifacts
+        const artifactsDir = path.join(tmpDir, 'src/artifacts');
+        console.log({ artifactsDir });
+        const artifacts: Record<string, string> = {};
+        
+        if (await fs.pathExists(artifactsDir)) {
+            const files = await fs.readdir(artifactsDir);
+            for (const file of files) {
+                const content = await fs.readFile(path.join(artifactsDir, file), 'utf-8');
+                artifacts[file] = content;
+            }
+        }
+
         // Send the results
         res.json({
             success: true,
             stdout,
-            stderr
+            stderr,
+            artifacts
         });
     } catch (error) {
         // Send error details
