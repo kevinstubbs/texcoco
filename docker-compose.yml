@@ -4,7 +4,7 @@ services:
     entrypoint: anvil -p 8545 --host 0.0.0.0 --chain-id 31337 --silent
     ports:
       - "8545:8545"
-  aztec:
+  aztec-island:
     image: aztecprotocol/aztec:0.82.3
     ports:
       - "8080:8080"
@@ -31,9 +31,22 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-  # advance-blocks:
-  #   image: turnstile-deploy:0.0.37
-  #   command: aztec-sandbox-advance-blocks --pxe http://aztec:8080
-  #   depends_on:
-  #     aztec:
-  #       condition: service_healthy
+
+#   command: aztec-sandbox-advance-blocks --pxe http://aztec:8080
+#   depends_on:
+#     aztec:
+#       condition: service_healthy
+
+  templerunner:
+    build:
+      context: ./templerunner
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      - ethereum
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3001/status" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
