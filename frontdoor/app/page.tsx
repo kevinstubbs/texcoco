@@ -1,13 +1,23 @@
 // app/page.tsx
 'use client';
+import { useRouter } from 'next/navigation';
 
 import { useState } from "react";
 
 export default function HomePage() {
   const [prompt, setPrompt] = useState('Generate a contract where users can vote YES or NO on a proposal, and they should only be granted one vote each');
+  const router = useRouter();
+
+  const handleGenerate = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log({ prompt })
+    if (prompt.trim()) {
+      router.push(`/workbench?prompt=${encodeURIComponent(prompt.trim())}`);
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-white text-gray-900 font-sans">
+    <main className="min-h-screen text-gray-900 font-sans">
       {/* Hero Section */}
       <section className="max-w-[1280px] w-full mx-auto px-6 py-20 text-center bg-gradient-to-b from-white to-gray-50">
         <h1 className="text-5xl font-extrabold mb-4">
@@ -20,7 +30,7 @@ export default function HomePage() {
           <textarea className="w-full" placeholder='Generate a voting contract' value={prompt} onChange={(e) => setPrompt(e.target.value)} />
         </div>
         <div>
-          <button className="btn btn-soft btn-primary">Generate</button>
+          <button onClick={handleGenerate} disabled={!prompt.trim()} className="btn btn-soft btn-primary">Generate</button>
         </div>
       </section>
 
