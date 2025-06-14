@@ -8,7 +8,7 @@ import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-rust';
-import 'prismjs/themes/prism.css';
+import 'prismjs/themes/prism-dark.css';
 import { compileContract } from '../actions/compile';
 import { Interact } from './interact';
 import { UIConfig } from './interact-interfaces';
