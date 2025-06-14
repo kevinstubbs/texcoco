@@ -7,6 +7,7 @@ import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
+// import 'prismjs/components/prism-jsx.min';
 import 'prismjs/components/prism-rust';
 import 'prismjs/themes/prism-dark.css';
 import { compileContract } from '../actions/compile';
@@ -19,6 +20,34 @@ import { AIChatCard } from '../components/AIChatCard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { FaCopy } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+
+const GeneratedReactCard = () => {
+    const [reactCode, setReactCode] = useState(`<div>
+</div>`);
+
+    return (
+        <div className="card bg-base-100 shadow-xl mt-4">
+            <div className="card-body">
+                <h3 className="card-title">Generated React Component</h3>
+                <div className="bg-base-300 rounded-lg overflow-hidden">
+                    <Editor
+                        value={reactCode}
+                        onValueChange={code => setReactCode(code)}
+                        highlight={code => highlight(code, languages.javascript)}
+                        padding={16}
+                        style={{
+                            fontFamily: '"Fira code", "Fira Mono", monospace',
+                            fontSize: 14,
+                            minHeight: '400px',
+                            backgroundColor: 'hsl(var(--b3))',
+                        }}
+                        className="w-full"
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const ArtifactsCard = ({ artifacts }: { artifacts: Record<string, string> }) => {
     return (
@@ -76,6 +105,7 @@ export default function Workbench() {
     const [uiConfig, setUIConfig] = useState<UIConfig | null>(null);
     const [generatingUIConfig, setGeneratingUIConfig] = useState(false);
     const [showArtifacts, setShowArtifacts] = useState(false);
+    const [activeTab, setActiveTab] = useState('interact');
 
     useEffect(() => {
         async function generate() {
@@ -156,25 +186,33 @@ export default function Workbench() {
                     <div className="card bg-base-100 shadow-xl mt-4">
                         <div className="tabs tabs-boxed">
                             <button 
-                                className={`tab ${!showArtifacts ? 'tab-active' : ''}`}
-                                onClick={() => setShowArtifacts(false)}
+                                className={`tab ${activeTab === 'interact' ? 'tab-active' : ''}`}
+                                onClick={() => setActiveTab('interact')}
                             >
                                 Interact
                             </button>
                             <button 
-                                className={`tab ${showArtifacts ? 'tab-active' : ''}`}
-                                onClick={() => setShowArtifacts(true)}
+                                className={`tab ${activeTab === 'artifacts' ? 'tab-active' : ''}`}
+                                onClick={() => setActiveTab('artifacts')}
                             >
                                 Artifacts
                             </button>
+                            <button 
+                                className={`tab ${activeTab === 'react' ? 'tab-active' : ''}`}
+                                onClick={() => setActiveTab('react')}
+                            >
+                                React
+                            </button>
                         </div>
                         <div className="card-body">
-                            {!showArtifacts ? (
+                            {activeTab === 'interact' ? (
                                 <ErrorBoundary>
                                     <Interact config={uiConfig} selectedWallet={selectedWallet} />
                                 </ErrorBoundary>
-                            ) : compilationResult.artifacts ? (
+                            ) : activeTab === 'artifacts' && compilationResult.artifacts ? (
                                 <ArtifactsCard artifacts={compilationResult.artifacts} />
+                            ) : activeTab === 'react' ? (
+                                <GeneratedReactCard />
                             ) : null}
                         </div>
                     </div>

@@ -1,6 +1,6 @@
 import { getSchnorrAccount } from "@aztec/accounts/schnorr";
-import { getDeployedTestAccountsWallets } from "@aztec/accounts/testing";
-import { createPXEClient, Fr, GrumpkinScalar, PXE } from "@aztec/aztec.js";
+import { getDeployedTestAccountsWallets, getInitialTestAccountsWallets } from "@aztec/accounts/testing";
+import { Contract, ContractArtifact, createPXEClient, Fr, GrumpkinScalar, PXE } from "@aztec/aztec.js";
 import { walletsAtom, selectedWalletAtom } from '../atoms';
 import { getDefaultStore } from 'jotai';
 
@@ -66,4 +66,15 @@ export async function generateAccount(pxe: PXE) {
     store.set(selectedWalletAtom, newWallet);
 
     return newWallet;
+}
+
+export async function deployContract(contract: ContractArtifact, pxe: PXE) {
+    const [ownerWallet] = await getInitialTestAccountsWallets(pxe);
+    // const ownerAddress = ownerWallet.getAddress();
+
+    const deployedContract = await Contract.deploy(ownerWallet, contract, [])
+        .send()
+        .deployed();
+
+    return deployedContract;
 }

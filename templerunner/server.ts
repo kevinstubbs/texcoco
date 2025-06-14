@@ -11,7 +11,7 @@ const app = express();
 app.use(express.json());
 
 const NARGO_TOML = `[package]
-name = "easy_private_voting_contract"
+name = "dynamic_contract"
 authors = [""]
 compiler_version = ">=0.25.0"
 type = "contract"
@@ -54,20 +54,30 @@ app.post('/compile', async (req, res) => {
 
         // Run codegen
         await execAsync(
-            'node --no-warnings /usr/src/yarn-project/aztec/dest/bin/index.js codegen target --outdir src/artifacts',
+            '/usr/src/yarn-project/aztec/dest/bin/index.js codegen ./aztec-nargo/output/target/path -o src/artifacts',
             { cwd: tmpDir }
         );
 
-        // Read all generated artifacts
-        const artifactsDir = path.join(tmpDir, 'src/artifacts');
-        console.log({ artifactsDir });
+        // Read all generated artifacts from both directories
         const artifacts: Record<string, string> = {};
         
-        if (await fs.pathExists(artifactsDir)) {
-            const files = await fs.readdir(artifactsDir);
+        // Read from src/artifacts
+        const srcArtifactsDir = path.join(tmpDir, 'src/artifacts');
+        if (await fs.pathExists(srcArtifactsDir)) {
+            const files = await fs.readdir(srcArtifactsDir);
             for (const file of files) {
-                const content = await fs.readFile(path.join(artifactsDir, file), 'utf-8');
-                artifacts[file] = content;
+                const content = await fs.readFile(path.join(srcArtifactsDir, file), 'utf-8');
+                artifacts[`src/artifacts/${file}`] = content;
+            }
+        }
+
+        // Read from target
+        const targetDir = path.join(tmpDir, 'target');
+        if (await fs.pathExists(targetDir)) {
+            const files = await fs.readdir(targetDir);
+            for (const file of files) {
+                const content = await fs.readFile(path.join(targetDir, file), 'utf-8');
+                artifacts[`target/${file}`] = content;
             }
         }
 
