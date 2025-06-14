@@ -272,6 +272,8 @@ export default function Workbench() {
         stdout?: string;
         stderr?: string;
         error?: string;
+        timestamp?: number;
+        duration?: number;
     } | null>(null);
 
     useEffect(() => {
@@ -303,14 +305,21 @@ export default function Workbench() {
         if (!contract) return;
         setCompiling(true);
         setCompilationResult(null);
+        const startTime = Date.now();
 
         try {
             const result = await compileContract(contract);
-            setCompilationResult(result);
+            setCompilationResult({
+                ...result,
+                timestamp: Date.now(),
+                duration: Date.now() - startTime
+            });
         } catch (err) {
             setCompilationResult({
                 success: false,
-                error: err instanceof Error ? err.message : 'Failed to compile contract'
+                error: err instanceof Error ? err.message : 'Failed to compile contract',
+                timestamp: Date.now(),
+                duration: Date.now() - startTime
             });
         } finally {
             setCompiling(false);
@@ -390,7 +399,19 @@ export default function Workbench() {
                         </button>
 
                         <div className="mt-4">
-                            <h4 className="font-semibold mb-2">Compilation Output</h4>
+                            {compilationResult &&
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="font-semibold">Compilation Output</h4>
+                                    {compilationResult?.timestamp && (
+                                        <span
+                                            className="text-sm text-base-content/70 cursor-help"
+                                            title={`${new Date(compilationResult.timestamp).toLocaleTimeString()}\nCompilation took ${(compilationResult.duration || 0) / 1000}s`}
+                                        >
+                                            Last compiled: {new Date(compilationResult.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} in {(compilationResult.duration || 0) / 1000}s
+                                        </span>
+                                    )}
+                                </div>
+                            }
                             {compilationResult && (
                                 <div className="space-y-4">
                                     {compilationResult.stdout && (
