@@ -390,7 +390,7 @@ export default function Workbench() {
                         </button>
 
                         <div className="mt-4">
-                            <h4 className="font-semibold mb-2">Output</h4>
+                            <h4 className="font-semibold mb-2">Compilation Output</h4>
                             {compilationResult && (
                                 <div className="space-y-4">
                                     {compilationResult.stdout && (
@@ -399,15 +399,52 @@ export default function Workbench() {
                                         </pre>
                                     )}
                                     {compilationResult.stderr && (
-                                        <pre className="bg-base-300 p-4 rounded-lg overflow-x-auto text-sm text-error">
-                                            <code>{compilationResult.stderr}</code>
-                                        </pre>
+                                        <>
+                                            {compilationResult.stderr.includes('Aborting due') && (
+                                                <div className="alert alert-error mb-4">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <div>
+                                                        <h3 className="font-bold">Compilation Failed</h3>
+                                                        <div className="text-xs">The contract could not be compiled - see full compiler output below.</div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <pre className="bg-base-300 p-4 rounded-lg overflow-x-auto text-sm">
+                                                <code>
+                                                    {compilationResult.stderr.split('\n').reduce((acc: { lines: string[], color: string }[], line) => {
+                                                        if (line.startsWith('warning:')) {
+                                                            acc.push({ lines: [line], color: 'text-warning' });
+                                                        } else if (line.startsWith('error:') || line.startsWith('Aborting due')) {
+                                                            acc.push({ lines: [line], color: 'text-error' });
+                                                        } else if (line.trim() === '') {
+                                                            // Empty line starts a new block
+                                                            acc.push({ lines: [line], color: 'text-success' });
+                                                        } else if (acc.length > 0 && acc[acc.length - 1].color !== 'text-success') {
+                                                            // Continue the current block's color
+                                                            acc[acc.length - 1].lines.push(line);
+                                                        } else {
+                                                            // Start a new success block
+                                                            acc.push({ lines: [line], color: 'text-success' });
+                                                        }
+                                                        return acc;
+                                                    }, []).map((block, blockIndex) => (
+                                                        <div key={blockIndex} className={block.color}>
+                                                            {block.lines.map((line, lineIndex) => (
+                                                                <div key={`${blockIndex}-${lineIndex}`}>{line}</div>
+                                                            ))}
+                                                        </div>
+                                                    ))}
+                                                </code>
+                                            </pre>
+                                        </>
                                     )}
-                                    {compilationResult.error && (
+                                    {/* {compilationResult.error && (
                                         <div className="alert alert-error">
                                             <span>{compilationResult.error}</span>
                                         </div>
-                                    )}
+                                    )} */}
                                 </div>
                             )}
                         </div>
