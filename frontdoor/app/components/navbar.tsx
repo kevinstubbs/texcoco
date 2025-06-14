@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getNodeInfo } from "../utils/aztec";
 import Link from "next/link";
 import { FaHeartbeat } from "react-icons/fa";
+import { FaGear } from "react-icons/fa6";
 import classNames from "classnames";
 
 export const Navbar = () => {
@@ -52,7 +53,7 @@ export const Navbar = () => {
                     <div>{connectionStatus}</div>
                 </div>
 
-                <div>
+                <div className="flex gap-2">
                     <a
                         href="/health"
                         target="_blank"
@@ -60,7 +61,16 @@ export const Navbar = () => {
                         className="btn btn-ghost btn-sm hover:text-red-500"
                     >
                         <FaHeartbeat className="text-xl" />
-                    </a></div>
+                    </a>
+                    <a
+                        href="/settings"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-ghost btn-sm hover:text-primary"
+                    >
+                        <FaGear className="text-xl" />
+                    </a>
+                </div>
             </div>
         </div>
     );

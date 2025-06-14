@@ -5,15 +5,18 @@ import { UIConfig } from './interact-interfaces';
 import { Wallet } from '@aztec/aztec.js';
 import { createPXEClient, PXE } from '@aztec/aztec.js';
 import { generateAccount } from '../utils/aztec';
+import { useAtomValue } from 'jotai';
+import { walletsAtom } from '../atoms';
 
-interface InteractProps {
+export interface InteractProps {
     config: UIConfig;
+    selectedWallet: Wallet | null;
 }
 
-export function Interact({ config }: InteractProps) {
+export function Interact({ config, selectedWallet }: InteractProps) {
     const [selectedPersona, setSelectedPersona] = useState(config.personas[0]);
-    const [wallet, setWallet] = useState<Wallet | null>(null);
-    const [generatedWallets, setGeneratedWallets] = useState<Wallet[]>([]);
+    const [wallet, setWallet] = useState<Wallet | null>(selectedWallet);
+    const wallets = useAtomValue(walletsAtom);
     const [pxe, setPxe] = useState<PXE | null>(null);
     const [isCreatingWallet, setIsCreatingWallet] = useState(false);
 
@@ -25,14 +28,18 @@ export function Interact({ config }: InteractProps) {
         initPxe();
     }, []);
 
+    useEffect(() => {
+        if (wallet == null && wallets?.length) {
+            setWallet(wallets[0]);
+        }
+    }, [wallet, wallets])
+
     const handleCreateWallet = async () => {
         if (!pxe) return;
-        
+
         setIsCreatingWallet(true);
         try {
-            const newWallet = await generateAccount(pxe);
-            setGeneratedWallets(prev => [...prev, newWallet]);
-            setWallet(newWallet);
+            setWallet(await generateAccount(pxe));
         } catch (error) {
             console.error('Failed to create wallet:', error);
         } finally {
@@ -51,25 +58,25 @@ export function Interact({ config }: InteractProps) {
                             <label className="label">
                                 <span className="label-text">Select Wallet</span>
                             </label>
-                            <select 
+                            <select
                                 className="select select-bordered w-full"
                                 value={wallet?.getAddress().toString() || ''}
                                 onChange={(e) => {
-                                    const selectedWallet = generatedWallets.find(
+                                    const selectedWallet = wallets.find(
                                         w => w.getAddress().toString() === e.target.value
                                     );
                                     if (selectedWallet) setWallet(selectedWallet);
                                 }}
                             >
                                 <option value="">No wallet selected</option>
-                                {generatedWallets.map((w, index) => (
+                                {wallets.map((w, index) => (
                                     <option key={w.getAddress().toString()} value={w.getAddress().toString()}>
                                         Wallet {index + 1} ({w.getAddress().toString().slice(0, 6)}...)
                                     </option>
                                 ))}
                             </select>
                         </div>
-                        <button 
+                        <button
                             className="btn btn-primary w-full"
                             onClick={handleCreateWallet}
                             disabled={isCreatingWallet || !pxe}
@@ -117,7 +124,7 @@ export function Interact({ config }: InteractProps) {
                                 <div key={screen.id} className="card bg-base-200">
                                     <div className="card-body">
                                         <h3 className="card-title">{screen.props.prompt}</h3>
-                                        <button 
+                                        <button
                                             className="btn btn-primary"
                                             disabled={!wallet}
                                         >

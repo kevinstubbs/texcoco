@@ -1,6 +1,8 @@
 import { getSchnorrAccount } from "@aztec/accounts/schnorr";
 import { getDeployedTestAccountsWallets } from "@aztec/accounts/testing";
 import { createPXEClient, Fr, GrumpkinScalar, PXE } from "@aztec/aztec.js";
+import { walletsAtom, selectedWalletAtom } from '../atoms';
+import { getDefaultStore } from 'jotai';
 
 const { PXE_URL = "http://localhost:8080" } = process.env;
 
@@ -56,6 +58,12 @@ export async function generateAccount(pxe: PXE) {
     const newAccount = await getSchnorrAccount(pxe, secretKey, signingPrivateKey);
     await newAccount.deploy({ deployWallet: wallet }).wait();
     const newWallet = await newAccount.getWallet();
+
+    // Store the new wallet in localStorage using jotai
+    const store = getDefaultStore();
+    const currentWallets = await store.get(walletsAtom);
+    store.set(walletsAtom, [...currentWallets, newWallet]);
+    store.set(selectedWalletAtom, newWallet);
 
     return newWallet;
 }

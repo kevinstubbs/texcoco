@@ -16,6 +16,7 @@
     "@types/prismjs": "^1.26.5",
     "classnames": "^2.5.1",
     "daisyui": "^5.0.43",
+    "jotai": "^2.12.5",
     "next": "15.3.3",
     "prismjs": "^1.30.0",
     "react": "^19.0.0",

@@ -12,6 +12,9 @@ import 'prismjs/themes/prism.css';
 import { compileContract } from '../actions/compile';
 import { Interact } from './interact';
 import { UIConfig } from './interact-interfaces';
+import { FaGear } from "react-icons/fa6";
+import { useAtom } from 'jotai';
+import { walletsAtom, selectedWalletAtom } from '../atoms';
 
 const testConfig: UIConfig = {
     "personas": [
@@ -259,6 +262,9 @@ const testConfig: UIConfig = {
     ]
 }
 
+const compilerVersions = [
+    { version: '0.82.3', label: '0.82.3' }
+] as const;
 
 export default function Workbench() {
     const searchParams = useSearchParams();
@@ -267,6 +273,9 @@ export default function Workbench() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [compiling, setCompiling] = useState(false);
+    const [selectedCompiler, setSelectedCompiler] = useState(compilerVersions[0].version);
+    const [wallets] = useAtom(walletsAtom);
+    const [selectedWallet] = useAtom(selectedWalletAtom);
     const [compilationResult, setCompilationResult] = useState<{
         success: boolean;
         stdout?: string;
@@ -381,7 +390,21 @@ export default function Workbench() {
             <div className="w-1/3 p-4">
                 <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
-                        <h3 className="card-title">Compile</h3>
+                        <div className="flex gap-2 items-center justify-between mb-2">
+                            <h3 className="card-title">Compile</h3>
+
+                            <select
+                                className="select select-bordered w-32"
+                                value={selectedCompiler}
+                                disabled
+                            >
+                                {compilerVersions.map(compiler => (
+                                    <option key={compiler.version} value={compiler.version}>
+                                        {compiler.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
                         <button
                             className='btn btn-primary'
@@ -398,11 +421,11 @@ export default function Workbench() {
                             )}
                         </button>
 
-                        <div className="mt-4">
-                            {compilationResult &&
+                        <div className="mt-0">
+                            {compilationResult && (
                                 <div className="flex justify-between items-center mb-2">
                                     <h4 className="font-semibold">Compilation Output</h4>
-                                    {compilationResult?.timestamp && (
+                                    {compilationResult.timestamp && (
                                         <span
                                             className="text-sm text-base-content/70 cursor-help"
                                             title={`${new Date(compilationResult.timestamp).toLocaleTimeString()}\nCompilation took ${(compilationResult.duration || 0) / 1000}s`}
@@ -411,7 +434,7 @@ export default function Workbench() {
                                         </span>
                                     )}
                                 </div>
-                            }
+                            )}
                             {compilationResult && (
                                 <div className="space-y-4">
                                     {compilationResult.stdout && (
@@ -473,11 +496,18 @@ export default function Workbench() {
                 </div>
                 <div className="card bg-base-100 shadow-xl mt-4">
                     <div className="card-body">
-                        <h3 className="card-title">Interact</h3>
-                        <Interact config={testConfig} />
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="card-title">Interact</h3>
+                            {wallets.length === 0 && (
+                                <div className="text-sm text-warning">
+                                    No wallets found. <a href="/settings" className="link link-primary">Create one</a>
+                                </div>
+                            )}
+                        </div>
+                        <Interact config={testConfig} selectedWallet={selectedWallet} />
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
