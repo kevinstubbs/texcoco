@@ -15,6 +15,7 @@ import { UIConfig } from './interact-interfaces';
 import { FaGear } from "react-icons/fa6";
 import { useAtom } from 'jotai';
 import { walletsAtom, selectedWalletAtom } from '../atoms';
+import { Wallet } from '@aztec/aztec.js';
 
 const testConfig: UIConfig = {
     "personas": [
@@ -266,6 +267,15 @@ const compilerVersions = [
     { version: '0.82.3', label: '0.82.3' }
 ] as const;
 
+interface CompilationResult {
+    success: boolean;
+    stdout?: string;
+    stderr?: string;
+    error?: string;
+    timestamp?: number;
+    duration?: number;
+}
+
 export default function Workbench() {
     const searchParams = useSearchParams();
     const prompt = searchParams.get('prompt');
@@ -276,14 +286,7 @@ export default function Workbench() {
     const [selectedCompiler, setSelectedCompiler] = useState(compilerVersions[0].version);
     const [wallets] = useAtom(walletsAtom);
     const [selectedWallet] = useAtom(selectedWalletAtom);
-    const [compilationResult, setCompilationResult] = useState<{
-        success: boolean;
-        stdout?: string;
-        stderr?: string;
-        error?: string;
-        timestamp?: number;
-        duration?: number;
-    } | null>(null);
+    const [compilationResult, setCompilationResult] = useState<CompilationResult | null>(null);
 
     useEffect(() => {
         async function generate() {
@@ -388,126 +391,145 @@ export default function Workbench() {
                 </div>
             </div>
             <div className="w-1/3 p-4">
-                <div className="card bg-base-100 shadow-xl">
-                    <div className="card-body">
-                        <div className="flex gap-2 items-center justify-between mb-2">
-                            <h3 className="card-title">Compile</h3>
-
-                            <select
-                                className="select select-bordered w-32"
-                                value={selectedCompiler}
-                                disabled
-                            >
-                                {compilerVersions.map(compiler => (
-                                    <option key={compiler.version} value={compiler.version}>
-                                        {compiler.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <button
-                            className='btn btn-primary'
-                            disabled={!contract?.length || compiling}
-                            onClick={handleCompile}
-                        >
-                            {compiling ? (
-                                <>
-                                    <span className="loading loading-spinner loading-sm"></span>
-                                    Compiling...
-                                </>
-                            ) : (
-                                'Compile'
-                            )}
-                        </button>
-
-                        <div className="mt-0">
-                            {compilationResult && (
-                                <div className="flex justify-between items-center mb-2">
-                                    <h4 className="font-semibold">Compilation Output</h4>
-                                    {compilationResult.timestamp && (
-                                        <span
-                                            className="text-sm text-base-content/70 cursor-help"
-                                            title={`${new Date(compilationResult.timestamp).toLocaleTimeString()}\nCompilation took ${(compilationResult.duration || 0) / 1000}s`}
-                                        >
-                                            Last compiled: {new Date(compilationResult.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} in {(compilationResult.duration || 0) / 1000}s
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-                            {compilationResult && (
-                                <div className="space-y-4">
-                                    {compilationResult.stdout && (
-                                        <pre className="bg-base-300 p-4 rounded-lg overflow-x-auto text-sm">
-                                            <code>{compilationResult.stdout}</code>
-                                        </pre>
-                                    )}
-                                    {compilationResult.stderr && (
-                                        <>
-                                            {compilationResult.stderr.includes('Aborting due') && (
-                                                <div className="alert alert-error mb-4">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <div>
-                                                        <h3 className="font-bold">Compilation Failed</h3>
-                                                        <div className="text-xs">The contract could not be compiled - see full compiler output below.</div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <pre className="bg-base-300 p-4 rounded-lg overflow-x-auto text-sm">
-                                                <code>
-                                                    {compilationResult.stderr.split('\n').reduce((acc: { lines: string[], color: string }[], line) => {
-                                                        if (line.startsWith('warning:')) {
-                                                            acc.push({ lines: [line], color: 'text-warning' });
-                                                        } else if (line.startsWith('error:') || line.startsWith('Aborting due')) {
-                                                            acc.push({ lines: [line], color: 'text-error' });
-                                                        } else if (line.trim() === '') {
-                                                            // Empty line starts a new block
-                                                            acc.push({ lines: [line], color: 'text-success' });
-                                                        } else if (acc.length > 0 && acc[acc.length - 1].color !== 'text-success') {
-                                                            // Continue the current block's color
-                                                            acc[acc.length - 1].lines.push(line);
-                                                        } else {
-                                                            // Start a new success block
-                                                            acc.push({ lines: [line], color: 'text-success' });
-                                                        }
-                                                        return acc;
-                                                    }, []).map((block, blockIndex) => (
-                                                        <div key={blockIndex} className={block.color}>
-                                                            {block.lines.map((line, lineIndex) => (
-                                                                <div key={`${blockIndex}-${lineIndex}`}>{line}</div>
-                                                            ))}
-                                                        </div>
-                                                    ))}
-                                                </code>
-                                            </pre>
-                                        </>
-                                    )}
-                                    {/* {compilationResult.error && (
-                                        <div className="alert alert-error">
-                                            <span>{compilationResult.error}</span>
-                                        </div>
-                                    )} */}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                <div className="card bg-base-100 shadow-xl mt-4">
-                    <div className="card-body">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="card-title">Interact</h3>
-                            {wallets.length === 0 && (
-                                <div className="text-sm text-warning">
-                                    No wallets found. <a href="/settings" className="link link-primary">Create one</a>
-                                </div>
-                            )}
-                        </div>
-                        <Interact config={testConfig} selectedWallet={selectedWallet} />
-                    </div>
-                </div>
+                <CompileCard {...{ contract, compiling, selectedCompiler, compilationResult, handleCompile }} />
+                {compilationResult?.success ? <InteractionCard wallets={wallets} selectedWallet={selectedWallet} /> : null}
+            </div>
+            <div className="w-1/3 p-4">
+                AI Chat
             </div>
         </div >
     );
+}
+
+const AIChatCard = () => {
+    return <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+            <h3 className="card-title">AI Chat</h3>
+        </div>
+    </div>
+}
+
+const CompileCard = ({ contract, compiling, selectedCompiler, compilationResult, handleCompile }: { contract: string | null | undefined, compiling: boolean, selectedCompiler: string, compilationResult: CompilationResult | null, handleCompile: () => void }) => {
+    return <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+            <div className="flex gap-2 items-center justify-between mb-2">
+                <h3 className="card-title">Compile</h3>
+
+                <select
+                    className="select select-bordered w-32"
+                    value={selectedCompiler}
+                    disabled
+                >
+                    {compilerVersions.map(compiler => (
+                        <option key={compiler.version} value={compiler.version}>
+                            {compiler.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <button
+                className='btn btn-primary'
+                disabled={!contract?.length || compiling}
+                onClick={handleCompile}
+            >
+                {compiling ? (
+                    <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        Compiling...
+                    </>
+                ) : (
+                    'Compile'
+                )}
+            </button>
+
+            <div className="mt-0">
+                {compilationResult && (
+                    <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-semibold">Compilation Output</h4>
+                        {compilationResult.timestamp && (
+                            <span
+                                className="text-sm text-base-content/70 cursor-help"
+                                title={`${new Date(compilationResult.timestamp).toLocaleTimeString()}\nCompilation took ${(compilationResult.duration || 0) / 1000}s`}
+                            >
+                                Last compiled: {new Date(compilationResult.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} in {(compilationResult.duration || 0) / 1000}s
+                            </span>
+                        )}
+                    </div>
+                )}
+                {compilationResult && (
+                    <div className="space-y-4">
+                        {compilationResult.stdout && (
+                            <pre className="bg-base-300 p-4 rounded-lg overflow-x-auto text-sm">
+                                <code>{compilationResult.stdout}</code>
+                            </pre>
+                        )}
+                        {compilationResult.stderr && (
+                            <>
+                                {compilationResult.stderr.includes('Aborting due') && (
+                                    <div className="alert alert-error mb-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div>
+                                            <h3 className="font-bold">Compilation Failed</h3>
+                                            <div className="text-xs">The contract could not be compiled - see full compiler output below.</div>
+                                        </div>
+                                    </div>
+                                )}
+                                <pre className="bg-base-300 p-4 rounded-lg overflow-x-auto text-sm">
+                                    <code>
+                                        {compilationResult.stderr.split('\n').reduce((acc: { lines: string[], color: string }[], line) => {
+                                            if (line.startsWith('warning:')) {
+                                                acc.push({ lines: [line], color: 'text-warning' });
+                                            } else if (line.startsWith('error:') || line.startsWith('Aborting due')) {
+                                                acc.push({ lines: [line], color: 'text-error' });
+                                            } else if (line.trim() === '') {
+                                                // Empty line starts a new block
+                                                acc.push({ lines: [line], color: 'text-success' });
+                                            } else if (acc.length > 0 && acc[acc.length - 1].color !== 'text-success') {
+                                                // Continue the current block's color
+                                                acc[acc.length - 1].lines.push(line);
+                                            } else {
+                                                // Start a new success block
+                                                acc.push({ lines: [line], color: 'text-success' });
+                                            }
+                                            return acc;
+                                        }, []).map((block, blockIndex) => (
+                                            <div key={blockIndex} className={block.color}>
+                                                {block.lines.map((line, lineIndex) => (
+                                                    <div key={`${blockIndex}-${lineIndex}`}>{line}</div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </code>
+                                </pre>
+                            </>
+                        )}
+                        {/* {compilationResult.error && (
+                        <div className="alert alert-error">
+                            <span>{compilationResult.error}</span>
+                        </div>
+                    )} */}
+                    </div>
+                )}
+            </div>
+        </div>
+    </div>
+}
+
+const InteractionCard = ({ wallets, selectedWallet }: { wallets: Wallet[], selectedWallet: Wallet }) => {
+    return <div className="card bg-base-100 shadow-xl mt-4">
+        <div className="card-body">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="card-title">Interact</h3>
+                {wallets.length === 0 && (
+                    <div className="text-sm text-warning">
+                        No wallets found. <a href="/settings" className="link link-primary">Create one</a>
+                    </div>
+                )}
+            </div>
+            <Interact config={testConfig} selectedWallet={selectedWallet} />
+        </div>
+    </div>
 }
