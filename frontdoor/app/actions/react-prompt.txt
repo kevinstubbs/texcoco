@@ -36,3 +36,24 @@ function App() {
   return <div>{account.address.toString()}</div>;
 }
 ```
+
+Based on this Aztec smart contract and UI config, generate a React component that implements the UI for the specified persona. The component should use the Nemi Wallet SDK for wallet interactions.
+
+Contract code:
+```noir
+{{CONTRACT_CODE}}
+```
+
+UI Config:
+```typescript
+{{UI_CONFIG}}
+```
+
+Please generate a React component that:
+1. Uses the Nemi Wallet SDK for wallet interactions
+2. Implements all the UI components specified in the config
+3. Handles all the specified actions and data sources
+4. Uses Tailwind CSS for styling
+5. Is responsive and user-friendly
+
+The component should be valid TypeScript React code that can be used directly in a Next.js application.

@@ -20,31 +20,69 @@ import { FaCopy } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { CompilationResult, CompileCard } from './compile-card';
+import { generateReactComponent } from '../actions/claude';
 
-const GeneratedReactCard = () => {
-    const [reactCode, setReactCode] = useState(`<div>
+const GeneratedReactCard = ({ contract, uiConfig }: { contract: string | null, uiConfig: UIConfig | null }) => {
+    const [reactCode, setReactCode] = useState<string>(`<div>
 </div>`);
+    const [generating, setGenerating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function generate() {
+            if (!contract || !uiConfig) return;
+            
+            setGenerating(true);
+            setError(null);
+            
+            try {
+                const result = await generateReactComponent(contract, uiConfig);
+                if (result.success && result.code) {
+                    setReactCode(result.code);
+                } else {
+                    setError(result.error || 'Failed to generate React component');
+                }
+            } catch (err) {
+                setError('Failed to generate React component');
+            } finally {
+                setGenerating(false);
+            }
+        }
+
+        generate();
+    }, [contract, uiConfig]);
 
     return (
         <div className="card bg-base-100 shadow-xl mt-4">
             <div className="card-body">
                 <h3 className="card-title">Generated React Component</h3>
-                <div>Implemented with <Link href="https://www.npmjs.com/package/@nemi-fi/wallet-sdk" target="_blank">Nemi Wallet SDK</Link> which is compatible with Obsidion and Azguard wallets.</div>
-                <div className="bg-base-300 rounded-lg overflow-hidden">
-                    <Editor
-                        value={reactCode}
-                        onValueChange={code => setReactCode(code)}
-                        highlight={code => highlight(code, languages.javascript)}
-                        padding={16}
-                        style={{
-                            fontFamily: '"Fira code", "Fira Mono", monospace',
-                            fontSize: 14,
-                            minHeight: '400px',
-                            backgroundColor: 'hsl(var(--b3))',
-                        }}
-                        className="w-full"
-                    />
-                </div>
+                <div>Implemented with <Link className='link underline hover:text-primary' href="https://www.npmjs.com/package/@nemi-fi/wallet-sdk" target="_blank">Nemi Wallet SDK</Link> which is compatible with <Link className='link underline hover:text-primary' href="https://obsidion.xyz/" target="_blank">Obsidion</Link> and <Link className='link underline hover:text-primary' href="https://azguardwallet.io/" target="_blank">Azguard</Link> wallets.</div>
+                {generating ? (
+                    <div className="flex items-center gap-2">
+                        <span className="loading loading-spinner loading-sm"></span>
+                        <span>Generating React component...</span>
+                    </div>
+                ) : error ? (
+                    <div className="alert alert-error">
+                        <span>{error}</span>
+                    </div>
+                ) : (
+                    <div className="bg-base-300 rounded-lg overflow-hidden">
+                        <Editor
+                            value={reactCode}
+                            onValueChange={() => {}}
+                            highlight={code => highlight(code, languages.javascript)}
+                            padding={16}
+                            style={{
+                                fontFamily: '"Fira code", "Fira Mono", monospace',
+                                fontSize: 14,
+                                minHeight: '400px',
+                                backgroundColor: 'hsl(var(--b3))',
+                            }}
+                            className="w-full"
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -116,13 +154,18 @@ const WorkbenchContent = () => {
     const [contractTab, setContractTab] = useState('main.nr');
 
     const nargoToml = `[package]
-name = "my_contract"
+name = "dynamic_contract"
+authors = [""]
+compiler_version = ">=0.25.0"
 type = "contract"
-authors = ["Aztec"]
-compiler_version = "0.12.0"
 
 [dependencies]
-aztec = { git = "https://github.com/AztecProtocol/aztec-packages", tag = "master" }
+aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3", directory="noir-projects/aztec-nr/aztec" }
+value_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3", directory="noir-projects/aztec-nr/value-note"}
+easy_private_state = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3", directory="noir-projects/aztec-nr/easy-private-state"}
+uint_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3", directory="noir-projects/aztec-nr/uint-note"}
+compressed_string = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3", directory="noir-projects/aztec-nr/compressed-string"}
+authwit = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3", directory="noir-projects/aztec-nr/authwit"}
 `;
 
     useEffect(() => {
@@ -310,7 +353,7 @@ aztec = { git = "https://github.com/AztecProtocol/aztec-packages", tag = "master
                                 ) : activeTab === 'artifacts' && compilationResult.artifacts ? (
                                     <ArtifactsCard artifacts={compilationResult.artifacts} />
                                 ) : activeTab === 'react' ? (
-                                    <GeneratedReactCard />
+                                    <GeneratedReactCard contract={contract || null} uiConfig={uiConfig} />
                                 ) : null}
                             </div>
                         </div>

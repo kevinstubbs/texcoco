@@ -236,4 +236,41 @@ The config should be valid TypeScript that can be parsed by JSON.parse().`
         console.error('Error generating UI config:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Failed to generate UI config' };
     }
+}
+
+export async function generateReactComponent(contractCode: string, uiConfig: any) {
+    try {
+        // Read the prompt from the file
+        const promptPath = join(process.cwd(), 'app', 'actions', 'react-prompt.txt');
+        let systemPrompt = await fs.readFile(promptPath, 'utf-8');
+
+        // Replace the macros with actual content
+        systemPrompt = systemPrompt
+            .replace('{{CONTRACT_CODE}}', contractCode)
+            .replace('{{UI_CONFIG}}', JSON.stringify(uiConfig, null, 2));
+
+        const message = await anthropic.messages.create({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 4000,
+            messages: [
+                {
+                    role: "user",
+                    content: systemPrompt
+                }
+            ],
+        });
+
+        const content = message.content[0].type === 'text' ? message.content[0].text : '';
+
+        // Extract the React component code from the response
+        const codeMatch = content.match(/```(?:tsx|typescript)?\n([\s\S]*?)\n```/);
+        if (!codeMatch) {
+            throw new Error('Failed to extract React component code from response');
+        }
+
+        return { success: true, code: codeMatch[1] };
+    } catch (error) {
+        console.error('Error generating React component:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to generate React component' };
+    }
 } 

@@ -8,10 +8,10 @@ RUN apk add --no-cache python3 make g++ && \
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
 # Install dependencies
-RUN npm install
+RUN yarn install --frozen-lockfile
 
 # Copy the rest of the application
 COPY . .
@@ -21,10 +21,10 @@ ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
 
 # Build the application
-# RUN npm run build
+# RUN yarn build
 
 # Expose the port
 EXPOSE 3000
 
 # Start the application (THIS IS HACKY)
-CMD ["npm", "dev"] 
+CMD ["yarn", "dev"] 
