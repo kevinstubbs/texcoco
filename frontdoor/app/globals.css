@@ -99,3 +99,12 @@ body {
 .token.entity {
   cursor: help;
 }
+
+.ai-chat-message p {
+  margin: 1rem 0;
+}
+
+.ai-chat-message h2 {
+  font-weight: bold;
+  font-size: 1.2rem;
+}

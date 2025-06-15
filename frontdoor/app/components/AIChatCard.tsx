@@ -3,6 +3,7 @@ import { FaPaperPlane } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import type { Components } from 'react-markdown';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -88,13 +89,35 @@ export function AIChatCard({ contractCode, seedPrompt }: AIChatCardProps) {
         }
     };
 
+    const markdownComponents: Components = {
+        code({ node, inline, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '');
+            return !inline && match ? (
+                <SyntaxHighlighter
+                    style={dracula as any}
+                    language={match[1]}
+                    PreTag="div"
+                    {...props}
+                >
+                    {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+            ) : (
+                <code className={className} {...props}>
+                    {children}
+                </code>
+            );
+        },
+        p: ({ children }) => <p className="whitespace-pre-wrap">{children}</p>,
+        br: () => <br />,
+    };
+
     return (
         <div className="flex flex-col min-h-128 border border-base-content/10 rounded-lg">
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/40">
                 {messages.map((message, index) => (
                     <div
                         key={index}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        className={`ai-chat-message flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                         <div
                             className={` rounded-lg p-3 ${message.role === 'user'
@@ -104,30 +127,12 @@ export function AIChatCard({ contractCode, seedPrompt }: AIChatCardProps) {
                         >
                             {message.role === 'assistant' ? (
                                 <ReactMarkdown
-                                    components={{
-                                        code({ node, inline, className, children, ...props }) {
-                                            const match = /language-(\w+)/.exec(className || '');
-                                            return !inline && match ? (
-                                                <SyntaxHighlighter
-                                                    style={dracula}
-                                                    language={'rust'}
-                                                    PreTag="div"
-                                                    {...props}
-                                                >
-                                                    {String(children).replace(/\n$/, '')}
-                                                </SyntaxHighlighter>
-                                            ) : (
-                                                <code className={className} {...props}>
-                                                    {children}
-                                                </code>
-                                            );
-                                        },
-                                    }}
+                                    components={markdownComponents}
                                 >
                                     {message.content}
                                 </ReactMarkdown>
                             ) : (
-                                message.content
+                                <div className="whitespace-pre-wrap">{message.content}</div>
                             )}
                         </div>
                     </div>
