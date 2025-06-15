@@ -1,10 +1,8 @@
 import { getSchnorrAccount } from "@aztec/accounts/schnorr";
 import { getDeployedTestAccountsWallets, getInitialTestAccountsWallets } from "@aztec/accounts/testing";
-import { Contract, ContractArtifact, createPXEClient, Fr, GrumpkinScalar, loadContractArtifact, PXE, waitForPXE } from "@aztec/aztec.js";
-import { walletsAtom, selectedWalletAtom } from '../atoms';
+import { AztecAddress, Contract, ContractArtifact, createPXEClient, Fr, GrumpkinScalar, loadContractArtifact, PXE, waitForPXE, Wallet } from "@aztec/aztec.js";
+import { walletsAtom, selectedWalletAtom, deployedContractAtom } from '../atoms';
 import { getDefaultStore } from 'jotai';
-
-import { TokenContractArtifact } from '@aztec/noir-contracts.js/Token';
 
 const { PXE_URL = "http://localhost:8080" } = process.env;
 
@@ -78,14 +76,26 @@ export async function generateAccount(pxe: PXE) {
 
 export async function deployContract(contract: ContractArtifact, pxe: PXE) {
     const [ownerWallet] = await getInitialTestAccountsWallets(pxe);
-    const ownerAddress = ownerWallet.getAddress();
+    // const ownerAddress = ownerWallet.getAddress();
 
-    console.log({ TokenContractArtifact })
+    // console.log({ TokenContractArtifact })
 
     console.log(contract)
     const deployedContract = await Contract.deploy(ownerWallet, loadContractArtifact(contract as any), [])
         .send()
         .deployed();
 
-    return deployedContract;
+    return await Contract.at(deployedContract.address, loadContractArtifact(contract as any), ownerWallet);
+}
+
+export async function callContractFunction(contract: Contract, wallet: Wallet, functionName: string, args: any[]) {
+    const functionInteraction = (await Contract.at(contract.address, contract.artifact, (await getInitialTestAccountsWallets(await getPXEClient()))[0])).methods[functionName](...args);
+    return functionInteraction.send().wait();
+}
+
+
+export async function readContractFunction(contract: Contract, wallet: Wallet, functionName: string, args: any[]) {
+    console.log("reading", functionName, args, contract.address.toString());
+    const functionInteraction = (await Contract.at(contract.address, contract.artifact, (await getInitialTestAccountsWallets(await getPXEClient()))[0])).methods[functionName](...args);
+    return functionInteraction.simulate();
 }

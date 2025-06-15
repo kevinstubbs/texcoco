@@ -4,12 +4,13 @@ import "./globals.css";
 import { Navbar } from "./components/navbar";
 import ExtensionErrorFilter from "./components/extension-error-filter";
 import { Toaster } from 'react-hot-toast';
+import { Providers } from "./components/providers";
 
 const inter = Inter({ subsets: ["latin"] });
-const bebasNeue = Bebas_Neue({ 
-    weight: '400',
-    subsets: ['latin'],
-    variable: '--font-bebas-neue',
+const bebasNeue = Bebas_Neue({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-bebas-neue',
 });
 
 export const metadata: Metadata = {
@@ -25,12 +26,14 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="light">
       <body className={`${inter.className} ${bebasNeue.variable}`}>
-        <div className="min-h-screen bg-base-100 flex flex-col">
-          <ExtensionErrorFilter />
-          <Navbar />
-          <div className="flex-1 flex">{children}</div>
-        </div>
-        <Toaster position="top-right" />
+        <Providers>
+          <div className="min-h-screen bg-base-100 flex flex-col">
+            <ExtensionErrorFilter />
+            <Navbar />
+            <div className="flex-1 flex">{children}</div>
+          </div>
+          <Toaster position="top-right" />
+        </Providers>
       </body>
     </html>
   );

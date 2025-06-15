@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { UIConfig } from './interact-interfaces';
 import { Wallet } from '@aztec/aztec.js';
 import { createPXEClient, PXE } from '@aztec/aztec.js';
-import { generateAccount } from '../utils/aztec';
+import { callContractFunction, generateAccount, readContractFunction } from '../utils/aztec';
 import { useAtomValue } from 'jotai';
-import { walletsAtom } from '../atoms';
+import { deployedContractAtom, walletsAtom } from '../atoms';
+import toast from 'react-hot-toast';
 
 export interface InteractProps {
     config: UIConfig;
@@ -19,6 +20,7 @@ export function Interact({ config, selectedWallet }: InteractProps) {
     const wallets = useAtomValue(walletsAtom);
     const [pxe, setPxe] = useState<PXE | null>(null);
     const [isCreatingWallet, setIsCreatingWallet] = useState(false);
+    const deployedContract = useAtomValue(deployedContractAtom);
 
     useEffect(() => {
         async function initPxe() {
@@ -33,6 +35,26 @@ export function Interact({ config, selectedWallet }: InteractProps) {
             setWallet(wallets[0]);
         }
     }, [wallet, wallets])
+
+    useEffect(() => {
+        console.log({ wallet, wallets, deployedContract }, deployedContract?.address.toString())
+        if (wallet != null && wallets?.length && deployedContract) {
+            readContractFunction(deployedContract, wallet, 'get_yes_count', [wallet.getAddress()]).then((balance) => {
+                console.log({ balance })
+                toast.success(`get_yes_count: ${balance}}`)
+            }).catch((error) => {
+                console.error(error);
+            });
+            readContractFunction(deployedContract, wallet, 'get_no_count', [wallet.getAddress()]).then((balance) => {
+                console.log({ balance })
+                toast.success(`get_no_count: ${balance}}`)
+            }).catch((error) => {
+                console.error(error);
+            });
+        }
+    }, [wallet, wallets, deployedContract])
+
+    console.log({ config })
 
     const handleCreateWallet = async () => {
         if (!pxe) return;
@@ -231,8 +253,28 @@ export function Interact({ config, selectedWallet }: InteractProps) {
                                                                 key={component.id}
                                                                 className="btn btn-primary w-full"
                                                                 disabled={!wallet}
+                                                                onClick={() => {
+                                                                    if (component.action.type === 'invokeFunction') {
+                                                                        console.log('Invoking function:', component.action.function)
+
+                                                                        if (!deployedContract) {
+                                                                            toast.error('No contract deployed');
+                                                                            return;
+                                                                        } else if (!wallet) {
+                                                                            toast.error('No wallet selected');
+                                                                            return;
+                                                                        }
+
+                                                                        callContractFunction(deployedContract, wallet, component.action.function, [0]).then(() => {
+                                                                            toast.success('Function invoked');
+                                                                        }).catch((error) => {
+                                                                            toast.error('Failed to invoke function');
+                                                                            console.error(error);
+                                                                        });
+                                                                    }
+                                                                }}
                                                             >
-                                                                {component.label}
+                                                                {component.label} 237
                                                             </button>
                                                         );
 

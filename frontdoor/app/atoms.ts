@@ -1,6 +1,6 @@
 import { atom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
-import { PXE, createPXEClient, AztecAddress, Fr, GrumpkinScalar } from '@aztec/aztec.js';
+import { PXE, createPXEClient, AztecAddress, Fr, GrumpkinScalar, Contract } from '@aztec/aztec.js';
 import { getSchnorrAccount } from '@aztec/accounts/schnorr';
 import { getDeployedTestAccountsWallets } from '@aztec/accounts/testing';
 
@@ -13,6 +13,9 @@ interface WalletData {
 // Store only the wallet data in localStorage
 const walletDataAtom = atomWithStorage<WalletData[]>('texcoco-wallets', []);
 const selectedWalletDataAtom = atomWithStorage<WalletData | null>('texcoco-selected-wallet', null);
+
+// Atom for storing deployed contract address
+export const deployedContractAtom = atom<Contract>();
 
 // Helper function to create a wallet from stored data
 async function createWalletFromData(data: WalletData): Promise<any> {
