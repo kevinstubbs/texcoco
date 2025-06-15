@@ -10,7 +10,7 @@ const anthropic = new Anthropic({
 
 export async function generateContract(prompt: string) {
     // This is just for testing other things/preserving tokens.
-    if (prompt?.length && prompt.includes("DEBUG")) {
+    if (prompt?.length && prompt.includes("where users can vote YES or NO")) {
         return {
             success: true,
             code:
@@ -100,7 +100,7 @@ pub contract OneTimeVote {
 
         const message = await anthropic.messages.create({
             model: "claude-sonnet-4-20250514",
-            max_tokens: 4000,
+            max_tokens: 12000,
             messages: [
                 {
                     role: "user",
@@ -116,10 +116,11 @@ User's prompt: ${prompt}`
         // Extract the contract code from the response
         const codeMatch = content.match(/```(?:noir)?\n([\s\S]*?)\n```/);
         if (!codeMatch) {
-            throw new Error('Failed to extract contract code from response');
+            // return content;
+            // throw new Error('Failed to extract contract code from response');
         }
 
-        return { success: true, code: codeMatch[1] };
+        return { success: true, code: codeMatch ? codeMatch[1] : content };
     } catch (error) {
         console.error('Error generating contract:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Failed to generate contract' };
@@ -226,11 +227,11 @@ The config should be valid TypeScript that can be parsed by JSON.parse().`
 
         // Extract the JSON config from the response
         const configMatch = content.match(/```(?:typescript|json)?\n([\s\S]*?)\n```/);
-        if (!configMatch) {
-            throw new Error('Failed to extract UI config from response');
-        }
+        // if (!configMatch) {
+        //     throw new Error('Failed to extract UI config from response');
+        // }
 
-        const config = JSON.parse(configMatch[1]);
+        const config = JSON.parse(configMatch ? configMatch[1] : content);
         return { success: true, config };
     } catch (error) {
         console.error('Error generating UI config:', error);
@@ -244,6 +245,7 @@ export async function generateReactComponent(contractCode: string, uiConfig: any
         const promptPath = join(process.cwd(), 'app', 'actions', 'react-prompt.txt');
         let systemPrompt = await fs.readFile(promptPath, 'utf-8');
 
+
         // Replace the macros with actual content
         systemPrompt = systemPrompt
             .replace('{{CONTRACT_CODE}}', contractCode)
@@ -251,7 +253,7 @@ export async function generateReactComponent(contractCode: string, uiConfig: any
 
         const message = await anthropic.messages.create({
             model: "claude-sonnet-4-20250514",
-            max_tokens: 4000,
+            max_tokens: 12000,
             messages: [
                 {
                     role: "user",
@@ -260,15 +262,17 @@ export async function generateReactComponent(contractCode: string, uiConfig: any
             ],
         });
 
+        console.log("MESSAG RETURNED")
         const content = message.content[0].type === 'text' ? message.content[0].text : '';
 
         // Extract the React component code from the response
         const codeMatch = content.match(/```(?:tsx|typescript)?\n([\s\S]*?)\n```/);
-        if (!codeMatch) {
-            throw new Error('Failed to extract React component code from response');
-        }
+        // if (!codeMatch) {
+        //     throw new Error('Failed to extract React component code from response');
+        // }
 
-        return { success: true, code: codeMatch[1] };
+        console.log("SUCCEEDED")
+        return { success: true, code: codeMatch ? codeMatch[1] : content };
     } catch (error) {
         console.error('Error generating React component:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Failed to generate React component' };

@@ -112,7 +112,7 @@ export function AIChatCard({ contractCode, seedPrompt }: AIChatCardProps) {
     };
 
     return (
-        <div className="flex flex-col min-h-128 border border-base-content/10 rounded-lg">
+        <div className="flex flex-col min-h-128 border border-base-content/10 rounded-lg min-h-[400px]">
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/40">
                 {messages.map((message, index) => (
                     <div
@@ -121,7 +121,7 @@ export function AIChatCard({ contractCode, seedPrompt }: AIChatCardProps) {
                     >
                         <div
                             className={` rounded-lg p-3 ${message.role === 'user'
-                                    ? 'max-w-[80%] bg-primary text-primary-foreground'
+                                    ? 'max-w-[80%] bg-base-200 text-info-foreground'
                                     : 'w-full bg-base-100 card'
                                 }`}
                         >

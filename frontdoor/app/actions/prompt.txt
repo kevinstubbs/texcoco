@@ -1090,9 +1090,25 @@ These are the allowed Aztec-defined macros:
 #[public], #[private] or #[utility] - Whether the function is to be executed from a public, private or utility context (see Further Reading)
 #[initializer] - If one or more functions are marked as an initializer, then one of them must be called before any non-initializer functions
 #[noinitcheck] - The function is able to be called before an initializer (if one exists)
-#[view] - Makes calls to the function static
 #[internal] - Function can only be called from within the contract
 #[note] - Creates a custom note
 #[storage] - Defines contract storage
+
+Don't use #[view] macro because the compiler seems to struggle with it.
+
+Don't include "mod types;"
+
+If you need poseidon2_hash_with_separator, or AztecAddress then reference this example
+```
+use dep::aztec::{
+    protocol_types::{
+        address::AztecAddress,
+        hash::poseidon2_hash_with_separator
+    },
+    macros::notes::note
+};
+```
+
+Don't use NoteInterface
 
 I will compile what you give me with `aztec-nargo compile` and it should not generate any errors. Now please generate an Aztec contract which compiles without any errors on 0.82.3 based on the idea given by the user.

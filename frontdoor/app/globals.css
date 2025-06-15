@@ -1,4 +1,6 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @plugin "daisyui" {
   /* themes: light --default, dark --prefersdark; */
@@ -7,9 +9,9 @@
   /* themes: business --default; */
   /* themes: abyss --default; */
   /* themes: dim --default;  */
-  themes: dracula --default;
+  themes: dark --default;
 }
-/* 
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -33,7 +35,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-} */
+}
 
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
@@ -54,10 +56,8 @@ body {
 }
 
 .token.punctuation {
-  color: #4caf50 !important;
-  background-color: transparent !important;
+  color: #999;
 }
-
 
 .token.comment,
 .token.prolog,
