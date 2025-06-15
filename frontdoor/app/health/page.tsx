@@ -35,7 +35,7 @@ export default function SandboxHealth() {
                         <div className="card bg-base-100 shadow-xl">
                             <div className="card-body">
                                 <h2 className="card-title">Connection Status</h2>
-                                <div className="stats shadow">
+                                <div className="stats shadow-sm">
                                     <div className="stat">
                                         <div className="stat-title">Status</div>
                                         <div className={`stat-value ${data.status === 'connected' ? 'text-success' : 'text-error'}`}>
@@ -51,7 +51,7 @@ export default function SandboxHealth() {
                                 <div className="card bg-base-100 shadow-xl mt-4">
                                     <div className="card-body">
                                         <h2 className="card-title">Node Info</h2>
-                                        <div className="stats shadow">
+                                        <div className="stats shadow-sm">
                                             <div className="stat">
                                                 <div className="stat-title">Chain ID</div>
                                                 <div className="stat-value">{data.l1ChainId}</div>

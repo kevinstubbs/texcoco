@@ -17,7 +17,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-base-100 text-base-content font-sans w-full bg-gradient-to-b from-base-100 to-base-200">
+    <main className="min-h-screen bg-base-100 text-base-content font-sans w-full bg-linear-to-b from-base-100 to-base-200">
       {/* Hero Section */}
       <section className="max-w-[1280px] w-full mx-auto px-6 py-20 text-center ">
         <h1 className="text-5xl font-extrabold mb-4">
@@ -50,7 +50,7 @@ export default function HomePage() {
         <h2 className="text-3xl font-semibold text-center mb-12">Start From a Template</h2>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
           {TEMPLATES.map(template => (
-            <div key={template.title} className="card bg-base-200 shadow-sm hover:shadow-md transition">
+            <div key={template.title} className="card bg-base-200 shadow-xs hover:shadow-md transition">
               <figure>
                 <Image
                   src={template.image}
