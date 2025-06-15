@@ -31,10 +31,10 @@ const GeneratedReactCard = ({ contract, uiConfig }: { contract: string | null, u
     useEffect(() => {
         async function generate() {
             if (!contract || !uiConfig) return;
-            
+
             setGenerating(true);
             setError(null);
-            
+
             try {
                 const result = await generateReactComponent(contract, uiConfig);
                 if (result.success && result.code) {
@@ -70,7 +70,7 @@ const GeneratedReactCard = ({ contract, uiConfig }: { contract: string | null, u
                     <div className="bg-base-300 rounded-lg overflow-hidden">
                         <Editor
                             value={reactCode}
-                            onValueChange={() => {}}
+                            onValueChange={() => { }}
                             highlight={code => highlight(code, languages.javascript)}
                             padding={16}
                             style={{
@@ -258,7 +258,7 @@ authwit = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3
                     seedPrompt={prompt || undefined}
                 />
             </div>
-            <div className="h-full flex flex-col items-center">
+            <div className="h-full flex flex-col items-center flex-1">
                 <div className="text-center w-full max-w-4xl">
                     {loading ? (
                         <div className="flex justify-center">
@@ -319,7 +319,7 @@ authwit = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3
                 </div>
             </div>
             <div className="w-1/3 p-4">
-                <CompileCard {...{ contract, compiling, compilationResult, handleCompile }} />
+                {contract && <CompileCard {...{ contract, compiling, compilationResult, handleCompile }} />}
                 {
                     compilationResult?.success && !generatingUIConfig && uiConfig ? (
                         <div className="card bg-base-100 shadow-xl mt-4">

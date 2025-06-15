@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react";
+import { DetailedHTMLProps, ImgHTMLAttributes, useEffect, useState } from "react";
 import { getNodeInfo } from "../utils/aztec";
 import Link from "next/link";
 import { FaHeartbeat } from "react-icons/fa";
@@ -21,8 +21,9 @@ export const Navbar = () => {
     const connectionStatus = loading ? 'Loading...' : nodeInfo?.status === 'connected' ? 'Connected' : 'Disconnected';
 
     return (
-        <div className="navbar bg-base-100 shadow-lg">
-            <div className="flex-1">
+        <div className="navbar bg-base-100 shadow-lg px-4">
+            <div className="flex-1 flex items-center gap-0">
+                <AztecPyramidIcon className="w-8 h-8" />
                 <Link href="/" className="btn btn-ghost text-xl font-bebas-neue">Texcoco</Link>
             </div>
             <div className="flex flex-row flex-none gap-2">
@@ -75,3 +76,7 @@ export const Navbar = () => {
         </div>
     );
 }
+
+const AztecPyramidIcon = (props: DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => (
+    <img src="https://images.vexels.com/media/users/3/163379/isolated/preview/f02eb80c92d9e05f8705f8262d3b9450-temple-pyramid-aztec-flat.png"  {...props} />
+);

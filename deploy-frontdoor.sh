@@ -71,7 +71,7 @@ steps:
       - '--allow-unauthenticated'
       - '--set-env-vars=NEXT_PUBLIC_TEMPLERUNNER_URL=http://${TEMPLERUNNER_IP}:3001,NEXT_PUBLIC_PXE_URL=http://${AZTEC_IP}:8080'
       - '--set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest'
-      - '--memory=1Gi'
+      - '--memory=4Gi'
       - '--cpu=1'
       - '--min-instances=1'
       - '--max-instances=2'

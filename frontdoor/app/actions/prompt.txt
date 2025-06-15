@@ -1079,5 +1079,20 @@ pub contract EasyPrivateVoting {
 }
 ```
 
-Do not include any emojis in the output. I will compile what you give me with `aztec-nargo compile` and it should not generate any errors. Now please generate an Aztec contract which compiles without any errors on 0.82.3 based on this idea:
-"Allows users to vote one time each either "yes" or "no""
+- Do not include any emojis in the output.
+- Do not include language indicators such as ```noir
+- Make sure that all used macros are imported as deps.
+- If possible, avoid using the str type, especially in storage.
+- Don't use an assert if it has complex logic, for example asserting if something is < 1 is fine, but not if it's <1 or >5
+
+These are the allowed Aztec-defined macros:
+#[aztec] - Defines a contract, placed above contract ContractName{}
+#[public], #[private] or #[utility] - Whether the function is to be executed from a public, private or utility context (see Further Reading)
+#[initializer] - If one or more functions are marked as an initializer, then one of them must be called before any non-initializer functions
+#[noinitcheck] - The function is able to be called before an initializer (if one exists)
+#[view] - Makes calls to the function static
+#[internal] - Function can only be called from within the contract
+#[note] - Creates a custom note
+#[storage] - Defines contract storage
+
+I will compile what you give me with `aztec-nargo compile` and it should not generate any errors. Now please generate an Aztec contract which compiles without any errors on 0.82.3 based on the idea given by the user.

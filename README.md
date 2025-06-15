@@ -6,7 +6,7 @@
 - **Demo:**
 Live site: https://frontdoor-768268294832.europe-west10.run.app
 Video: TBD
-
+![Architecture Diagram](presentation/architecture.jpg)
 
 ## Description (TL;DR)
 Texcoco is an AI-native workbench for rapidly prototyping Aztec contracts and dApps. It provides a sandbox environment for developing, testing, and deploying privacy-preserving smart contracts on the Aztec network.
