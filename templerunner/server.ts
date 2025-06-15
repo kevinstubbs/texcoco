@@ -54,7 +54,7 @@ app.post('/compile', async (req, res) => {
 
         // Run codegen
         await execAsync(
-            '/usr/src/yarn-project/aztec/dest/bin/index.js codegen ./aztec-nargo/output/target/path -o src/artifacts',
+            'node --no-warnings /usr/src/yarn-project/aztec/dest/bin/index.js codegen target --outdir src/artifacts',
             { cwd: tmpDir }
         );
 

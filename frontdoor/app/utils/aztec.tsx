@@ -1,8 +1,10 @@
 import { getSchnorrAccount } from "@aztec/accounts/schnorr";
 import { getDeployedTestAccountsWallets, getInitialTestAccountsWallets } from "@aztec/accounts/testing";
-import { Contract, ContractArtifact, createPXEClient, Fr, GrumpkinScalar, PXE } from "@aztec/aztec.js";
+import { Contract, ContractArtifact, createPXEClient, Fr, GrumpkinScalar, loadContractArtifact, PXE, waitForPXE } from "@aztec/aztec.js";
 import { walletsAtom, selectedWalletAtom } from '../atoms';
 import { getDefaultStore } from 'jotai';
+
+import { TokenContractArtifact } from '@aztec/noir-contracts.js/Token';
 
 const { PXE_URL = "http://localhost:8080" } = process.env;
 
@@ -12,9 +14,15 @@ export async function showAccounts(pxe: PXE) {
     return accounts;
 }
 
+export async function getPXEClient() {
+    const pxe = await createPXEClient(PXE_URL);
+    await waitForPXE(pxe);
+    return pxe;
+}
+
 export async function getNodeInfo() {
     try {
-        const pxe = await createPXEClient(PXE_URL);
+        const pxe = await getPXEClient();
         const { l1ChainId } = await pxe.getNodeInfo();
         console.log(`Connected to chain ${l1ChainId}`);
 
@@ -70,9 +78,12 @@ export async function generateAccount(pxe: PXE) {
 
 export async function deployContract(contract: ContractArtifact, pxe: PXE) {
     const [ownerWallet] = await getInitialTestAccountsWallets(pxe);
-    // const ownerAddress = ownerWallet.getAddress();
+    const ownerAddress = ownerWallet.getAddress();
 
-    const deployedContract = await Contract.deploy(ownerWallet, contract, [])
+    console.log({ TokenContractArtifact })
+
+    console.log(contract)
+    const deployedContract = await Contract.deploy(ownerWallet, loadContractArtifact(contract as any), [])
         .send()
         .deployed();
 

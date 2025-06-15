@@ -23,7 +23,7 @@ export const Navbar = () => {
     return (
         <div className="navbar bg-base-100 shadow-lg">
             <div className="flex-1">
-                <Link href="/" className="btn btn-ghost text-xl">Texcoco</Link>
+                <Link href="/" className="btn btn-ghost text-xl font-bebas-neue">Texcoco</Link>
             </div>
             <div className="flex flex-row flex-none gap-2">
                 {nodeInfo?.status === 'connected' ?
