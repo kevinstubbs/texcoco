@@ -28,6 +28,13 @@ export function AIChatCard({ contractCode, seedPrompt }: AIChatCardProps) {
         scrollToBottom();
     }, [messages]);
 
+    // Add seed prompt as first message when provided
+    useEffect(() => {
+        if (seedPrompt && messages.length === 0) {
+            setMessages([{ role: 'user', content: seedPrompt }]);
+        }
+    }, [seedPrompt, messages.length]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
