@@ -1,10 +1,10 @@
 import { getSchnorrAccount } from "@aztec/accounts/schnorr";
 import { getDeployedTestAccountsWallets, getInitialTestAccountsWallets } from "@aztec/accounts/testing";
-import { AztecAddress, Contract, ContractArtifact, createPXEClient, Fr, GrumpkinScalar, loadContractArtifact, PXE, waitForPXE, Wallet } from "@aztec/aztec.js";
-import { walletsAtom, selectedWalletAtom, deployedContractAtom } from '../atoms';
+import { Contract, ContractArtifact, createPXEClient, Fr, GrumpkinScalar, loadContractArtifact, PXE, waitForPXE, Wallet } from "@aztec/aztec.js";
+import { walletsAtom, selectedWalletAtom } from '../atoms';
 import { getDefaultStore } from 'jotai';
 
-const { PXE_URL = "http://localhost:8080" } = process.env;
+const PXE_URL = process.env.NEXT_PUBLIC_PXE_URL || "http://localhost:8080";
 
 export async function showAccounts(pxe: PXE) {
     const accounts = await pxe.getRegisteredAccounts();
@@ -19,6 +19,7 @@ export async function getPXEClient() {
 }
 
 export async function getNodeInfo() {
+    console.log(process.env, PXE_URL);
     try {
         const pxe = await getPXEClient();
         const { l1ChainId } = await pxe.getNodeInfo();

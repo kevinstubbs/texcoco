@@ -27,12 +27,6 @@ if ! command -v gcloud &> /dev/null; then
     exit 1
 fi
 
-# Check if docker is installed
-if ! command -v docker &> /dev/null; then
-    echo "${RED}Error: docker is not installed${NC}"
-    exit 1
-fi
-
 # Check if kubectl is installed
 if ! command -v kubectl &> /dev/null; then
     echo "${RED}Error: kubectl is not installed${NC}"
@@ -48,6 +42,9 @@ echo "${GREEN}Enabling required APIs...${NC}"
 gcloud services enable container.googleapis.com
 gcloud services enable containerregistry.googleapis.com
 gcloud services enable compute.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable iam.googleapis.com
+gcloud services enable serviceusage.googleapis.com
 
 # Reserve static IPs if they don't exist
 echo "${GREEN}Reserving static IPs...${NC}"
@@ -74,7 +71,7 @@ if ! gcloud container clusters describe $CLUSTER_NAME --zone $ZONE &> /dev/null;
     gcloud container clusters create $CLUSTER_NAME \
         --zone $ZONE \
         --machine-type e2-medium \
-        --num-nodes 3 \
+        --num-nodes 1 \
         --enable-ip-alias
 fi
 
@@ -82,43 +79,99 @@ fi
 echo "${GREEN}Getting cluster credentials...${NC}"
 gcloud container clusters get-credentials $CLUSTER_NAME --zone $ZONE
 
-# Configure Docker to use GCR
-echo "${GREEN}Configuring Docker for Google Container Registry...${NC}"
-gcloud auth configure-docker $GCR_HOSTNAME
+# Create cloudbuild.yaml
+echo "${GREEN}Creating Cloud Build configuration...${NC}"
+cat <<EOF > cloudbuild.yaml
+steps:
+  # Build the templerunner image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '${GCR_HOSTNAME}/${PROJECT_ID}/templerunner:latest', './templerunner']
+  
+  # Push the templerunner image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${GCR_HOSTNAME}/${PROJECT_ID}/templerunner:latest']
 
-# Build and push Docker images
-echo "${GREEN}Building and pushing Docker images...${NC}"
+  # Create Kubernetes namespace
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/namespace.yaml'
+      - '--location=${ZONE}'
+      - '--cluster=${CLUSTER_NAME}'
+      - '--output=/workspace/output/namespace'
 
-# Build and push templerunner
-echo "${GREEN}Building templerunner image...${NC}"
-docker buildx create --use
-docker buildx build --platform linux/amd64,linux/arm64 \
-    -t $GCR_HOSTNAME/$PROJECT_ID/templerunner:latest \
-    --push \
-    ./templerunner
+  # Create Kubernetes secrets
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/secrets.yaml'
+      - '--location=${ZONE}'
+      - '--cluster=${CLUSTER_NAME}'
+      - '--output=/workspace/output/secrets'
 
-# Create Kubernetes namespace
-echo "${GREEN}Creating Kubernetes namespace...${NC}"
-kubectl create namespace texcoco --dry-run=client -o yaml | kubectl apply -f -
+  # Deploy ethereum service
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/ethereum.yaml'
+      - '--location=${ZONE}'
+      - '--cluster=${CLUSTER_NAME}'
+      - '--output=/workspace/output/ethereum'
 
-# Create Kubernetes secrets for environment variables
-echo "${GREEN}Creating Kubernetes secrets...${NC}"
-kubectl create secret generic aztec-secrets \
-    --namespace texcoco \
-    --from-literal=FORCE_COLOR=0 \
-    --from-literal=LOG_LEVEL=info \
-    --from-literal=PXE_PORT=8080 \
-    --from-literal=PORT=8080 \
-    --from-literal=L1_CHAIN_ID=31337 \
-    --from-literal=TEST_ACCOUNTS=true \
-    --from-literal=VERSION=latest \
-    --dry-run=client -o yaml | kubectl apply -f -
+  # Deploy aztec-island service
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/aztec-island.yaml'
+      - '--location=${ZONE}'
+      - '--cluster=${CLUSTER_NAME}'
+      - '--output=/workspace/output/aztec-island'
 
-# Create Kubernetes deployments and services
-echo "${GREEN}Creating Kubernetes deployments and services...${NC}"
+  # Deploy templerunner service
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/templerunner.yaml'
+      - '--location=${ZONE}'
+      - '--cluster=${CLUSTER_NAME}'
+      - '--output=/workspace/output/templerunner'
 
-# Ethereum deployment
-cat <<EOF | kubectl apply -f -
+images:
+  - '${GCR_HOSTNAME}/${PROJECT_ID}/templerunner:latest'
+EOF
+
+# Create Kubernetes manifests directory
+mkdir -p k8s
+
+# Create namespace manifest
+cat <<EOF > k8s/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: texcoco
+EOF
+
+# Create secrets manifest
+cat <<EOF > k8s/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aztec-secrets
+  namespace: texcoco
+type: Opaque
+stringData:
+  FORCE_COLOR: "0"
+  LOG_LEVEL: "info"
+  PXE_PORT: "8080"
+  PORT: "8080"
+  L1_CHAIN_ID: "31337"
+  TEST_ACCOUNTS: "true"
+  VERSION: "latest"
+  ANTHROPIC_API_KEY: ""  # This will be set via GCP UI
+EOF
+
+# Create ethereum manifest
+cat <<EOF > k8s/ethereum.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -157,8 +210,8 @@ spec:
   type: ClusterIP
 EOF
 
-# Aztec Island deployment
-cat <<EOF | kubectl apply -f -
+# Create aztec-island manifest
+cat <<EOF > k8s/aztec-island.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -185,6 +238,10 @@ spec:
         env:
         - name: ETHEREUM_HOSTS
           value: "http://ethereum:8545"
+        - name: NEXT_PUBLIC_AZTEC_URL
+          value: "http://${AZTEC_IP}:8080"
+        - name: NEXT_PUBLIC_TEMPLERUNNER_URL
+          value: "http://${TEMPLERUNNER_IP}:3001"
         ports:
         - containerPort: 8080
         readinessProbe:
@@ -201,17 +258,19 @@ metadata:
   namespace: texcoco
   annotations:
     cloud.google.com/load-balancer-ip: "${AZTEC_IP}"
+    cloud.google.com/neg: '{"ingress": true}'
 spec:
   selector:
     app: aztec-island
   ports:
   - port: 8080
     targetPort: 8080
+    protocol: TCP
   type: LoadBalancer
 EOF
 
-# Templerunner deployment
-cat <<EOF | kubectl apply -f -
+# Create templerunner manifest
+cat <<EOF > k8s/templerunner.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -229,8 +288,16 @@ spec:
     spec:
       containers:
       - name: templerunner
-        image: $GCR_HOSTNAME/$PROJECT_ID/templerunner:latest
+        image: ${GCR_HOSTNAME}/${PROJECT_ID}/templerunner:latest
         imagePullPolicy: Always
+        envFrom:
+        - secretRef:
+            name: aztec-secrets
+        env:
+        - name: NEXT_PUBLIC_AZTEC_URL
+          value: "http://${AZTEC_IP}:8080"
+        - name: NEXT_PUBLIC_TEMPLERUNNER_URL
+          value: "http://${TEMPLERUNNER_IP}:3001"
         ports:
         - containerPort: 3001
         readinessProbe:
@@ -247,31 +314,20 @@ metadata:
   namespace: texcoco
   annotations:
     cloud.google.com/load-balancer-ip: "${TEMPLERUNNER_IP}"
+    cloud.google.com/neg: '{"ingress": true}'
 spec:
   selector:
     app: templerunner
   ports:
   - port: 3001
     targetPort: 3001
+    protocol: TCP
   type: LoadBalancer
 EOF
 
-# Wait for services to be ready
-echo "${GREEN}Waiting for services to be ready...${NC}"
-kubectl wait --namespace texcoco \
-  --for=condition=ready pod \
-  --selector=app=ethereum \
-  --timeout=300s
-
-kubectl wait --namespace texcoco \
-  --for=condition=ready pod \
-  --selector=app=aztec-island \
-  --timeout=300s
-
-kubectl wait --namespace texcoco \
-  --for=condition=ready pod \
-  --selector=app=templerunner \
-  --timeout=300s
+# Submit the build
+echo "${GREEN}Submitting build to Cloud Build...${NC}"
+gcloud builds submit --config cloudbuild.yaml
 
 echo "${GREEN}Deployment completed!${NC}"
 echo "Aztec Island URL: http://$AZTEC_IP:8080"

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aztec-island
+  namespace: texcoco
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aztec-island
+  template:
+    metadata:
+      labels:
+        app: aztec-island
+    spec:
+      containers:
+      - name: aztec-island
+        image: aztecprotocol/aztec:0.82.3
+        imagePullPolicy: Always
+        command: ["node", "--no-warnings", "/usr/src/yarn-project/aztec/dest/bin/index.js", "start", "--sandbox"]
+        envFrom:
+        - secretRef:
+            name: aztec-secrets
+        env:
+        - name: ETHEREUM_HOSTS
+          value: "http://ethereum:8545"
+        - name: NEXT_PUBLIC_AZTEC_URL
+          value: "http://34.32.72.160:8080"
+        - name: NEXT_PUBLIC_TEMPLERUNNER_URL
+          value: "http://34.32.67.97:3001"
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aztec-island
+  namespace: texcoco
+  annotations:
+    cloud.google.com/load-balancer-ip: "34.32.72.160"
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  selector:
+    app: aztec-island
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: LoadBalancer

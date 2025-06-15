@@ -2,7 +2,7 @@
 
 export async function compileContract(code: string) {
     try {
-        const response = await fetch('http://localhost:3001/compile', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_TEMPLERUNNER_URL || 'http://localhost:3001'}/compile`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

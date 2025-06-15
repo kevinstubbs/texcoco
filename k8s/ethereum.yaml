@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ethereum
+  namespace: texcoco
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ethereum
+  template:
+    metadata:
+      labels:
+        app: ethereum
+    spec:
+      containers:
+      - name: ethereum
+        image: ghcr.io/clarifiedlabs/foundry:stable
+        imagePullPolicy: Always
+        command: ["anvil"]
+        args: ["-p", "8545", "--host", "0.0.0.0", "--chain-id", "31337", "--silent"]
+        ports:
+        - containerPort: 8545
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ethereum
+  namespace: texcoco
+spec:
+  selector:
+    app: ethereum
+  ports:
+  - port: 8545
+    targetPort: 8545
+  type: ClusterIP

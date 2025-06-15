@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: templerunner
+  namespace: texcoco
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: templerunner
+  template:
+    metadata:
+      labels:
+        app: templerunner
+    spec:
+      containers:
+      - name: templerunner
+        image: gcr.io/aztec-coco/templerunner:latest
+        imagePullPolicy: Always
+        envFrom:
+        - secretRef:
+            name: aztec-secrets
+        env:
+        - name: NEXT_PUBLIC_AZTEC_URL
+          value: "http://34.32.72.160:8080"
+        - name: NEXT_PUBLIC_TEMPLERUNNER_URL
+          value: "http://34.32.67.97:3001"
+        ports:
+        - containerPort: 3001
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 3001
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: templerunner
+  namespace: texcoco
+  annotations:
+    cloud.google.com/load-balancer-ip: "34.32.67.97"
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  selector:
+    app: templerunner
+  ports:
+  - port: 3001
+    targetPort: 3001
+    protocol: TCP
+  type: LoadBalancer

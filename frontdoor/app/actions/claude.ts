@@ -111,7 +111,7 @@ User's prompt: ${prompt}`
             ],
         });
 
-        const content = message.content[0].text;
+        const content = message.content[0].type === 'text' ? message.content[0].text : '';
 
         // Extract the contract code from the response
         const codeMatch = content.match(/```(?:noir)?\n([\s\S]*?)\n```/);

@@ -1,0 +1,38 @@
+Given the UI Config ${UI_CONFIG} and ${CONTRACT_TYPESCRIPT}, generate a valid React typescript tsx file which allows the user to interact with the contract.
+
+Here is documentation on NemiFi SDK
+
+```md
+Aztec Wallet SDK
+
+Connect your Aztec app to any Aztec wallet.
+EIP-1193 RPC docs
+
+// before
+import { Wallet } from "@aztec/aztec.js";
+const account: Wallet;
+const token = await TokenContract.at(address, account);
+
+// after
+import { AztecWalletSdk, obsidion } from "@nemi-fi/wallet-sdk";
+import { Contract } from "@nemi-fi/wallet-sdk/eip1193";
+
+class Token extends Contract.fromAztec(TokenContract) {}
+
+const sdk = new AztecWalletSdk({
+  aztecNode: "http://localhost:8080",
+  connectors: [obsidion()],
+});
+await sdk.connect("obsidion");
+const account = await sdk.getAccount();
+const token = await Token.at(address, account);
+
+React
+
+import { useAccount } from "@nemi-fi/wallet-sdk/react";
+
+function App() {
+  const account = useAccount(sdk);
+  return <div>{account.address.toString()}</div>;
+}
+```

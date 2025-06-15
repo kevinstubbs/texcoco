@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { generateContract, generateUIConfig } from '../actions/claude';
 import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs/components/prism-core';
@@ -10,12 +10,10 @@ import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-rust';
 import 'prismjs/themes/prism-dark.css';
 import { compileContract } from '../actions/compile';
-import { deployContract, getPXEClient } from '../utils/aztec';
 import { Interact } from './interact';
 import { UIConfig } from './interact-interfaces';
 import { useAtom } from 'jotai';
-import { walletsAtom, selectedWalletAtom, deployedContractAtom } from '../atoms';
-import { ContractArtifact, Wallet } from '@aztec/aztec.js';
+import { walletsAtom, selectedWalletAtom } from '../atoms';
 import { AIChatCard } from '../components/AIChatCard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { FaCopy } from 'react-icons/fa';
@@ -31,6 +29,7 @@ const GeneratedReactCard = () => {
         <div className="card bg-base-100 shadow-xl mt-4">
             <div className="card-body">
                 <h3 className="card-title">Generated React Component</h3>
+                <div>Implemented with <Link href="https://www.npmjs.com/package/@nemi-fi/wallet-sdk" target="_blank">Nemi Wallet SDK</Link> which is compatible with Obsidion and Azguard wallets.</div>
                 <div className="bg-base-300 rounded-lg overflow-hidden">
                     <Editor
                         value={reactCode}
@@ -52,35 +51,55 @@ const GeneratedReactCard = () => {
 };
 
 const ArtifactsCard = ({ artifacts }: { artifacts: Record<string, string> }) => {
+    const [selectedArtifact, setSelectedArtifact] = useState(Object.keys(artifacts)[0]);
+
     return (
         <div className="card bg-base-100 shadow-xl mt-4">
             <div className="card-body">
-                <h3 className="card-title">Generated Artifacts</h3>
-                <div className="overflow-x-auto">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>File</th>
-                                <th>Content</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(artifacts).map(([filename, content]) => (
-                                <tr key={filename}>
-                                    <td className="font-mono">{filename}</td>
-                                    <td className="font-mono whitespace-pre-wrap">{content}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="flex justify-between items-center">
+                    <h3 className="card-title">Generated Artifacts</h3>
+                    <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                            navigator.clipboard.writeText(artifacts[selectedArtifact]);
+                            toast.success(`${selectedArtifact} copied to clipboard!`);
+                        }}
+                    >
+                        <FaCopy className="h-4 w-4" />
+                    </button>
+                </div>
+                <div className="tabs tabs-boxed mb-4">
+                    {Object.keys(artifacts).map((filename) => (
+                        <button
+                            key={filename}
+                            className={`tab ${selectedArtifact === filename ? 'tab-active' : ''}`}
+                            onClick={() => setSelectedArtifact(filename)}
+                        >
+                            {filename}
+                        </button>
+                    ))}
+                </div>
+                <div className="bg-base-300 rounded-lg overflow-hidden overflow-y-scroll max-h-[500px]">
+                    <Editor
+                        value={artifacts[selectedArtifact]}
+                        onValueChange={() => { }}
+                        highlight={code => highlight(code, languages.javascript)}
+                        padding={16}
+                        style={{
+                            fontFamily: '"Fira code", "Fira Mono", monospace',
+                            fontSize: 14,
+                            minHeight: '400px',
+                            backgroundColor: 'hsl(var(--b3))',
+                        }}
+                        className="w-full"
+                    />
                 </div>
             </div>
         </div>
     );
 };
 
-
-export default function Workbench() {
+const WorkbenchContent = () => {
     const searchParams = useSearchParams();
     const prompt = searchParams.get('prompt');
     const [contract, setContract] = useState<string | null | undefined>(null);
@@ -94,6 +113,17 @@ export default function Workbench() {
     const [generatingUIConfig, setGeneratingUIConfig] = useState(false);
     const [showArtifacts, setShowArtifacts] = useState(false);
     const [activeTab, setActiveTab] = useState('interact');
+    const [contractTab, setContractTab] = useState('main.nr');
+
+    const nargoToml = `[package]
+name = "my_contract"
+type = "contract"
+authors = ["Aztec"]
+compiler_version = "0.12.0"
+
+[dependencies]
+aztec = { git = "https://github.com/AztecProtocol/aztec-packages", tag = "master" }
+`;
 
     useEffect(() => {
         async function generate() {
@@ -203,17 +233,32 @@ export default function Workbench() {
                                     <button
                                         className="btn btn-ghost btn-sm"
                                         onClick={() => {
-                                            navigator.clipboard.writeText(contract);
-                                            toast.success('Contract copied to clipboard!');
+                                            navigator.clipboard.writeText(contractTab === 'main.nr' ? contract : nargoToml);
+                                            toast.success(`${contractTab} copied to clipboard!`);
                                         }}
                                     >
                                         <FaCopy className="h-4 w-4" />
                                     </button>
                                 </div>
+                                <div className="tabs tabs-boxed mb-4">
+                                    <button
+                                        className={`tab ${contractTab === 'main.nr' ? 'tab-active' : ''}`}
+                                        onClick={() => setContractTab('main.nr')}
+                                    >
+                                        src/main.nr
+                                    </button>
+                                    <div className="divider divider-horizontal"></div>
+                                    <button
+                                        className={`tab ${contractTab === 'Nargo.toml' ? 'tab-active' : ''}`}
+                                        onClick={() => setContractTab('Nargo.toml')}
+                                    >
+                                        Nargo.toml
+                                    </button>
+                                </div>
                                 <div className="bg-base-300 rounded-lg overflow-hidden">
                                     <Editor
-                                        value={contract}
-                                        onValueChange={code => setContract(code)}
+                                        value={contractTab === 'main.nr' ? contract : nargoToml}
+                                        onValueChange={code => contractTab === 'main.nr' ? setContract(code) : null}
                                         highlight={code => highlight(code, languages.rust)}
                                         padding={16}
                                         style={{
@@ -282,5 +327,15 @@ export default function Workbench() {
                 }
             </div>
         </div>
+    );
+};
+
+export default function Workbench() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-screen">
+            <span className="loading loading-spinner loading-lg"></span>
+        </div>}>
+            <WorkbenchContent />
+        </Suspense>
     );
 }

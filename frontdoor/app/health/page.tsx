@@ -30,6 +30,7 @@ export default function SandboxHealth() {
                     <div className="max-w-md">
                         <h1 className="text-5xl font-bold">Sandbox Health</h1>
                         <p className="py-6">Aztec Node Status</p>
+                        <p className="py-6">PXE URL: {data?.pxeUrl}</p>
                         
                         <div className="card bg-base-100 shadow-xl">
                             <div className="card-body">

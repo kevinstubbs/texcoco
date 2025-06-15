@@ -90,7 +90,7 @@ export function AIChatCard({ contractCode, seedPrompt }: AIChatCardProps) {
     };
 
     const markdownComponents: Components = {
-        code({ node, inline, className, children, ...props }) {
+        code({ node, inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '');
             return !inline && match ? (
                 <SyntaxHighlighter

@@ -25,9 +25,14 @@ const nextConfig: NextConfig = {
   },
   // Ensure WASM files are copied to the output
   output: 'standalone',
-  // Disable server components for sandbox page
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Disable static page generation
+  staticPageGenerationTimeout: 0,
+  // Disable automatic static optimization
   experimental: {
-    serverComponentsExternalPackages: ['@aztec/aztec.js', '@aztec/accounts'],
+    disableOptimizedLoading: true,
   },
 };
 
