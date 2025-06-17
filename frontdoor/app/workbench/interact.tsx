@@ -41,13 +41,13 @@ export function Interact({ config, selectedWallet }: InteractProps) {
         if (wallet != null && wallets?.length && deployedContract) {
             readContractFunction(deployedContract, wallet, 'get_yes_count', [wallet.getAddress()]).then((balance) => {
                 console.log({ balance })
-                toast.success(`get_yes_count: ${balance}}`)
+                // toast.success(`get_yes_count: ${balance}}`)
             }).catch((error) => {
                 console.error(error);
             });
             readContractFunction(deployedContract, wallet, 'get_no_count', [wallet.getAddress()]).then((balance) => {
                 console.log({ balance })
-                toast.success(`get_no_count: ${balance}}`)
+                // toast.success(`get_no_count: ${balance}}`)
             }).catch((error) => {
                 console.error(error);
             });

@@ -22,9 +22,9 @@ spec:
             name: aztec-secrets
         env:
         - name: NEXT_PUBLIC_AZTEC_URL
-          value: "http://34.32.72.160:8080"
+          value: "http://34.32.112.221/aztec"
         - name: NEXT_PUBLIC_TEMPLERUNNER_URL
-          value: "http://34.32.67.97:3001"
+          value: "http://34.32.112.221/templerunner"
         ports:
         - containerPort: 3001
         readinessProbe:
@@ -39,9 +39,6 @@ kind: Service
 metadata:
   name: templerunner
   namespace: texcoco
-  annotations:
-    cloud.google.com/load-balancer-ip: "34.32.67.97"
-    cloud.google.com/neg: '{"ingress": true}'
 spec:
   selector:
     app: templerunner
@@ -49,4 +46,4 @@ spec:
   - port: 3001
     targetPort: 3001
     protocol: TCP
-  type: LoadBalancer
+  type: ClusterIP

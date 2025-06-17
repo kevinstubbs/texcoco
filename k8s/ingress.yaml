@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: texcoco-ingress
+  namespace: texcoco
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "texcoco-ingress-ip"
+    networking.gke.io/managed-certificates: "texcoco-cert"
+    kubernetes.io/ingress.class: "gce"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /aztec
+        pathType: Prefix
+        backend:
+          service:
+            name: aztec-island
+            port:
+              number: 8080
+      - path: /templerunner
+        pathType: Prefix
+        backend:
+          service:
+            name: templerunner
+            port:
+              number: 3001

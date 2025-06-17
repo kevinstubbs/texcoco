@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useMemo, useRef } from 'react';
 import { generateContract, generateUIConfig } from '../actions/claude';
 import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs/components/prism-core';
@@ -27,10 +27,11 @@ const GeneratedReactCard = ({ contract, uiConfig }: { contract: string | null, u
 </div>`);
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const hasGeneratedRef = useRef(false);
 
     useEffect(() => {
         async function generate() {
-            if (!contract || !uiConfig) return;
+            if (!contract || !uiConfig || hasGeneratedRef.current) return;
 
             setGenerating(true);
             setError(null);
@@ -39,6 +40,7 @@ const GeneratedReactCard = ({ contract, uiConfig }: { contract: string | null, u
                 const result = await generateReactComponent(contract, uiConfig);
                 if (result.success && result.code) {
                     setReactCode(result.code);
+                    hasGeneratedRef.current = true;
                 } else {
                     setError(result.error || 'Failed to generate React component');
                 }
@@ -139,7 +141,7 @@ const ArtifactsCard = ({ artifacts }: { artifacts: Record<string, string> }) => 
 
 const WorkbenchContent = () => {
     const searchParams = useSearchParams();
-    const prompt = searchParams.get('prompt');
+    const prompt = useMemo(() => searchParams.get('prompt'), [searchParams]);
     const [contract, setContract] = useState<string | null | undefined>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -152,6 +154,7 @@ const WorkbenchContent = () => {
     const [showArtifacts, setShowArtifacts] = useState(false);
     const [activeTab, setActiveTab] = useState('interact');
     const [contractTab, setContractTab] = useState('main.nr');
+    const hasGeneratedRef = useRef(false);
 
     const nargoToml = `[package]
 name = "dynamic_contract"
@@ -174,6 +177,10 @@ authwit = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3
                 setLoading(false);
                 return;
             }
+
+
+            if (hasGeneratedRef.current) return;
+            hasGeneratedRef.current = true;
 
             try {
                 const result = await generateContract(prompt);
@@ -375,10 +382,6 @@ authwit = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.82.3
 
 export default function Workbench() {
     return (
-        <Suspense fallback={<div className="flex justify-center items-center h-screen">
-            <span className="loading loading-spinner loading-lg"></span>
-        </div>}>
-            <WorkbenchContent />
-        </Suspense>
+        <WorkbenchContent />
     );
 }

@@ -13,6 +13,7 @@ GCR_HOSTNAME="gcr.io"
 # Static IP names
 AZTEC_IP_NAME="aztec-island-ip"
 TEMPLERUNNER_IP_NAME="templerunner-ip"
+INGRESS_IP_NAME="texcoco-ingress-ip"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -61,9 +62,16 @@ if ! gcloud compute addresses describe $TEMPLERUNNER_IP_NAME --region $REGION &>
     gcloud compute addresses create $TEMPLERUNNER_IP_NAME --region $REGION
 fi
 
+# Check if Ingress IP exists
+if ! gcloud compute addresses describe $INGRESS_IP_NAME --region $REGION &> /dev/null; then
+    echo "${GREEN}Creating static IP for Ingress...${NC}"
+    gcloud compute addresses create $INGRESS_IP_NAME --region $REGION
+fi
+
 # Get the static IPs
 AZTEC_IP=$(gcloud compute addresses describe $AZTEC_IP_NAME --region $REGION --format='get(address)')
 TEMPLERUNNER_IP=$(gcloud compute addresses describe $TEMPLERUNNER_IP_NAME --region $REGION --format='get(address)')
+INGRESS_IP=$(gcloud compute addresses describe $INGRESS_IP_NAME --region $REGION --format='get(address)')
 
 # Create GKE cluster if it doesn't exist
 if ! gcloud container clusters describe $CLUSTER_NAME --zone $ZONE &> /dev/null; then
@@ -135,6 +143,24 @@ steps:
       - '--location=${ZONE}'
       - '--cluster=${CLUSTER_NAME}'
       - '--output=/workspace/output/templerunner'
+
+  # Deploy ingress
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/ingress.yaml'
+      - '--location=${ZONE}'
+      - '--cluster=${CLUSTER_NAME}'
+      - '--output=/workspace/output/ingress'
+
+  # Deploy managed certificate
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/certificate.yaml'
+      - '--location=${ZONE}'
+      - '--cluster=${CLUSTER_NAME}'
+      - '--output=/workspace/output/certificate'
 
 images:
   - '${GCR_HOSTNAME}/${PROJECT_ID}/templerunner:latest'
@@ -239,9 +265,9 @@ spec:
         - name: ETHEREUM_HOSTS
           value: "http://ethereum:8545"
         - name: NEXT_PUBLIC_AZTEC_URL
-          value: "http://${AZTEC_IP}:8080"
+          value: "http://${INGRESS_IP}/aztec"
         - name: NEXT_PUBLIC_TEMPLERUNNER_URL
-          value: "http://${TEMPLERUNNER_IP}:3001"
+          value: "http://${INGRESS_IP}/templerunner"
         ports:
         - containerPort: 8080
         readinessProbe:
@@ -256,9 +282,6 @@ kind: Service
 metadata:
   name: aztec-island
   namespace: texcoco
-  annotations:
-    cloud.google.com/load-balancer-ip: "${AZTEC_IP}"
-    cloud.google.com/neg: '{"ingress": true}'
 spec:
   selector:
     app: aztec-island
@@ -266,7 +289,7 @@ spec:
   - port: 8080
     targetPort: 8080
     protocol: TCP
-  type: LoadBalancer
+  type: ClusterIP
 EOF
 
 # Create templerunner manifest
@@ -295,9 +318,9 @@ spec:
             name: aztec-secrets
         env:
         - name: NEXT_PUBLIC_AZTEC_URL
-          value: "http://${AZTEC_IP}:8080"
+          value: "http://${INGRESS_IP}/aztec"
         - name: NEXT_PUBLIC_TEMPLERUNNER_URL
-          value: "http://${TEMPLERUNNER_IP}:3001"
+          value: "http://${INGRESS_IP}/templerunner"
         ports:
         - containerPort: 3001
         readinessProbe:
@@ -312,9 +335,6 @@ kind: Service
 metadata:
   name: templerunner
   namespace: texcoco
-  annotations:
-    cloud.google.com/load-balancer-ip: "${TEMPLERUNNER_IP}"
-    cloud.google.com/neg: '{"ingress": true}'
 spec:
   selector:
     app: templerunner
@@ -322,7 +342,50 @@ spec:
   - port: 3001
     targetPort: 3001
     protocol: TCP
-  type: LoadBalancer
+  type: ClusterIP
+EOF
+
+# Create ingress manifest
+cat <<EOF > k8s/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: texcoco-ingress
+  namespace: texcoco
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "${INGRESS_IP_NAME}"
+    networking.gke.io/managed-certificates: "texcoco-cert"
+    kubernetes.io/ingress.class: "gce"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /aztec
+        pathType: Prefix
+        backend:
+          service:
+            name: aztec-island
+            port:
+              number: 8080
+      - path: /templerunner
+        pathType: Prefix
+        backend:
+          service:
+            name: templerunner
+            port:
+              number: 3001
+EOF
+
+# Create managed certificate manifest
+cat <<EOF > k8s/certificate.yaml
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: texcoco-cert
+  namespace: texcoco
+spec:
+  domains:
+    - "texcoco.${PROJECT_ID}.app"
 EOF
 
 # Submit the build
@@ -330,5 +393,6 @@ echo "${GREEN}Submitting build to Cloud Build...${NC}"
 gcloud builds submit --config cloudbuild.yaml
 
 echo "${GREEN}Deployment completed!${NC}"
-echo "Aztec Island URL: http://$AZTEC_IP:8080"
-echo "Templerunner URL: http://$TEMPLERUNNER_IP:3001" 
+echo "Ingress URL: https://texcoco.${PROJECT_ID}.app"
+echo "Aztec Island: https://texcoco.${PROJECT_ID}.app/aztec"
+echo "Templerunner: https://texcoco.${PROJECT_ID}.app/templerunner" 
