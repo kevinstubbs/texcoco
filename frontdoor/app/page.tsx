@@ -23,21 +23,22 @@ export default function HomePage() {
         <h1 className="text-5xl font-extrabold mb-4">
           <span>Protovibe Aztec Contracts</span>
         </h1>
+        <div className="text-error max-w-2xl mx-auto">The hosted sandbox is currently offline - to run this project as intended, please run the `docker compose up` from the <a className='underline' href="https://github.com/kevinstubbs/Texcoco" target="_blank" rel="noopener noreferrer">Texcoco</a> repo. Reach out to `<b>0xlizards</b>` on Twitter/X if interested or need help to run it.</div>
         <p className="text-xl text-base-content/70 max-w-2xl mx-auto">
           Instantly create Aztec Contracts with natural language
         </p>
         <div className="mt-8 w-full">
-          <textarea 
-            className="textarea textarea-bordered w-full bg-base-200" 
-            placeholder='Generate a voting contract' 
-            value={prompt} 
-            onChange={(e) => setPrompt(e.target.value)} 
+          <textarea
+            className="textarea textarea-bordered w-full bg-base-200"
+            placeholder='Generate a voting contract'
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
           />
         </div>
         <div>
-          <button 
-            onClick={handleGenerate} 
-            disabled={!prompt.trim()} 
+          <button
+            onClick={handleGenerate}
+            disabled={!prompt.trim()}
             className="btn btn-primary mt-4"
           >
             Generate
