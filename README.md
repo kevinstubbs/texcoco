@@ -4,7 +4,7 @@
 - **Team/Contributors:** Kevin Stubbs
 - **Repository:** https://github.com/kevinstubbs/Texcoco
 - **Demo:**
-Live site: https://frontdoor-768268294832.europe-west10.run.app
+Live site: https://www.texcoco.xyz
 Video: TBD
 ![Architecture Diagram](presentation/architecture.jpg)
 
