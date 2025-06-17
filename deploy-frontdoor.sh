@@ -43,8 +43,8 @@ gcloud services enable serviceusage.googleapis.com
 echo "${GREEN}Getting static IPs...${NC}"
 # AZTEC_IP=$(gcloud compute addresses describe $AZTEC_IP_NAME --region $REGION --format='get(address)')
 # TEMPLERUNNER_IP=$(gcloud compute addresses describe $TEMPLERUNNER_IP_NAME --region $REGION --format='get(address)')
-AZTEC_IP=34.32.24.153
-TEMPLERUNNER_IP=34.32.87.161
+AZTEC_IP=localhost
+TEMPLERUNNER_IP=localhost
 
 # Create cloudbuild.yaml
 echo "${GREEN}Creating Cloud Build configuration...${NC}"
